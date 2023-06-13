@@ -1,9 +1,6 @@
-import cats.parse.Rfc5234.{lf, cr, crlf, sp, htab, alpha, digit, char}
+import cats.parse.Rfc5234.{alpha, char, cr, crlf, digit, htab, lf, sp}
 import cats.parse.{Parser, Parser0}
-import cats.parse.Parser.{char => pchar}
-import cats.parse.Parser.{charIn => pcharIn}
-import cats.parse.Parser.{string => pstring }
-import cats.parse.Parser.{stringIn => pstringIn }
+import cats.parse.Parser.{not, char as pchar, charIn as pcharIn, string as pstring, stringIn as pstringIn}
 
 class WhileyParser() {
   def parse(): Unit = {
@@ -41,26 +38,21 @@ class WhileyParser() {
     val IntLiteral: Parser[String] = digit.rep.string
     val HexLiteral: Parser[String] = pstring("0x") *> (digit | pcharIn('a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '_')).rep.string
 
-    val Character: Parser[String] = char.string
+    // No '\'' (0x27) and no '\\' (0x5c)
+    val Character: Parser[String] = (pcharIn(0x01.toChar to 0x26.toChar) | pcharIn(0x28.toChar to 0x5b.toChar) | pcharIn(0x5d.toChar to 0x7f.toChar)).string
     val CharacterEscape: Parser[String] = (pcharIn('\\') ~ pcharIn('\\', 't', 'n', '\'')).string
-    val CharacterLiteral: Parser[String] = pchar('\'') *> Character | CharacterEscape <* pchar('\'')
+    val CharacterLiteral: Parser[String] = pchar('\'') *> (Character | CharacterEscape).string <* pchar('\'')
 
+    // No '"' (0x22) and no '\\' (0x5c)
+    val StringCharacter: Parser[String] = (pcharIn(0x01.toChar to 0x21.toChar) | pcharIn(0x23.toChar to 0x5b.toChar) | pcharIn(0x5d.toChar to 0x7f.toChar)).string
     val StringEscape: Parser[String] = (pcharIn('\\') ~ pcharIn('\\', 't', 'n', '"')).string
-    val StringLiteral: Parser[String] = pchar('"') *> (Character | StringEscape).rep.string <* pchar('"')
-
-    val x = StringLiteral.parse("\"\"")
+    val StringLiteral: Parser[String] = pchar('"') *> (StringCharacter | StringEscape).rep.?.string <* pchar('"')
 
     val Literals: Parser[String] = NullLiteral | BoolLiteral | BinaryLiteral | IntLiteral | HexLiteral | CharacterLiteral | StringLiteral
 
-    val useless: Parser[Unit] = LineTerminator | sp
-    val p: Parser0[String] = useless.? *> _Letter.rep.string <* useless.?
-    //val x = p.parse("\nhey_kek lol ")
 
-    val p2: Parser[String] = digit.rep.string
-    val y = p2.parse("42")
-
+    val x = StringLiteral.parse("\"\\nhey_kek lol \\\"\"")
     println(x);
-    println(y)
   }
 }
 
