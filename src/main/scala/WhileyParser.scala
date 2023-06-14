@@ -1,6 +1,7 @@
 import cats.parse.Rfc5234.{alpha, char, cr, crlf, digit, htab, lf, sp}
 import cats.parse.{Parser, Parser0}
-import cats.parse.Parser.{not, char as pchar, charIn as pcharIn, string as pstring, stringIn as pstringIn}
+import cats.parse.Parser.{not, string0, char as pchar, charIn as pcharIn, string as pstring, stringIn as pstringIn}
+import cats.implicits.toShow
 
 class WhileyParser() {
   def parse(): Unit = {
@@ -46,13 +47,36 @@ class WhileyParser() {
     // No '"' (0x22) and no '\\' (0x5c)
     val StringCharacter: Parser[String] = (pcharIn(0x01.toChar to 0x21.toChar) | pcharIn(0x23.toChar to 0x5b.toChar) | pcharIn(0x5d.toChar to 0x7f.toChar)).string
     val StringEscape: Parser[String] = (pcharIn('\\') ~ pcharIn('\\', 't', 'n', '"')).string
-    val StringLiteral: Parser[String] = pchar('"') *> (StringCharacter | StringEscape).rep.?.string <* pchar('"')
+    val StringLiteral: Parser[String] = pchar('"') *> (StringCharacter | StringEscape).rep0.string <* pchar('"')
 
     val Literals: Parser[String] = NullLiteral | BoolLiteral | BinaryLiteral | IntLiteral | HexLiteral | CharacterLiteral | StringLiteral
 
+    // Source files
+    //TODO PackageDecl rule
 
-    val x = StringLiteral.parse("\"\\nhey_kek lol \\\"\"")
-    println(x);
+    //TODO ImportDecl rule
+    val FromSpec = (pcharIn('*') | Ident ~ (pchar(',') *> Indentation.? *> Ident).rep0) <* Indentation *> pstringIn(List("from")) <* Indentation
+    val WithSpec = pstringIn(List("with")) <* Indentation *> (pcharIn('*') | (Ident ~ (pchar(',') *> Ident).rep0))
+    val ImportDecl = (pstringIn(List("import")) <* Indentation *> FromSpec.backtrack.? ~ Ident ~ (pstringIn(List("::")) ~ (Ident | pcharIn('*').string)).rep0 ~ (Indentation *> WithSpec).?).string
+
+    //val x = ImportDecl.parse("import yes")
+    //val x = ImportDecl.parse("import * from a::pkg::File")
+    val x = ImportDecl.parseAll("import a::pkg::File with Oii")
+
+    //TODO TypeDecl rule
+    //TODO StaticVarDecl rule
+    //TODO FunctionDecl rulefrom
+    //TODO MethodDecl rule
+
+    //TODO Modifier rule
+
+    //TODO SourceFile rule
+
+    //val x = StringLiteral.parse("\"\\nhey_kek lol \\\"\"")
+    x match {
+      case Left(error) => println(error.show)
+      case Right(v) => println(v)
+    }
   }
 }
 
