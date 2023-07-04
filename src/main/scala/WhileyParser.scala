@@ -50,7 +50,7 @@ class WhileyParser() {
       ASTBinaryLiteral(bin)
     })
     val IntLiteral: Parser[ASTIntLiteral] = digit.rep.string.map(x => ASTIntLiteral(x.toInt))
-    val HexLiteral: Parser[ASTHexLiteral] = pstring("0x") *> (digit | pcharIn('a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '_')).rep.string.map(x => ASTHexLiteral(Integer.parseInt(x, 16)))
+    val HexLiteral: Parser[ASTHexLiteral] = pstring("0x") *> (digit | pcharIn('a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '_')).rep.string.map(x => ASTHexLiteral(Integer.parseInt(x.replace("_", ""), 16)))
 
     // No '\'' (0x27) and no '\\' (0x5c)
     val Character: Parser[String] = (pcharIn(0x01.toChar to 0x26.toChar) | pcharIn(0x28.toChar to 0x5b.toChar) | pcharIn(0x5d.toChar to 0x7f.toChar)).string
@@ -66,7 +66,7 @@ class WhileyParser() {
       | ASTBinaryLiteral | ASTHexLiteral | ASTCharacterLiteral
       | ASTStringLiteral] = NullLiteral | BoolLiteral | BinaryLiteral | HexLiteral | IntLiteral | CharacterLiteral | StringLiteral
 
-    val x = Literals.parseAll("\"hey :D\"")
+    val x = Literals.parseAll("0xa_d")
 
     // Source files
     //TODO PackageDecl rule
