@@ -2,6 +2,7 @@ import cats.parse.Rfc5234.{alpha, char, cr, crlf, digit, htab, lf, sp}
 import cats.parse.{Parser, Parser0}
 import cats.parse.Parser.{not, string0, char as pchar, charIn as pcharIn, string as pstring, stringIn as pstringIn}
 import cats.implicits.toShow
+import AST.*
 
 class WhileyParser() {
   def parse(): Unit = {
@@ -33,23 +34,39 @@ class WhileyParser() {
     val KeywordIdentifier: Parser[String] = pstringIn(keyword_identifier_list)
 
     // Literals
-    val NullLiteral: Parser[String] = pstringIn(List("null"))
-    val BoolLiteral: Parser[String] = pstringIn(List("true", "false"))
-    val BinaryLiteral: Parser[String] = pstring("0b") *> pcharIn('0', '1', '_').rep.string
-    val IntLiteral: Parser[String] = digit.rep.string
-    val HexLiteral: Parser[String] = pstring("0x") *> (digit | pcharIn('a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '_')).rep.string
+    val NullLiteral: Parser[ASTNullLiteral] = pstringIn(List("null")).map(x => ASTNullLiteral())
+    val BoolLiteral: Parser[ASTBoolLiteral] = pstringIn(List("true", "false")).string.map(x => ASTBoolLiteral(x.equals("true")))
+    val BinaryLiteral: Parser[ASTBinaryLiteral] = pstring("0b") *> pcharIn('0', '1', '_').rep.string.map(bits => {
+      var bin = 0
+      for (x <- bits) {
+        if (x == '1') {
+          bin = bin << 1
+          bin = bin | 1
+        } else if (x == '0') {
+          bin = bin << 1
+        }
+      }
+
+      ASTBinaryLiteral(bin)
+    })
+    val IntLiteral: Parser[ASTIntLiteral] = digit.rep.string.map(x => ASTIntLiteral(x.toInt))
+    val HexLiteral: Parser[ASTHexLiteral] = pstring("0x") *> (digit | pcharIn('a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '_')).rep.string.map(x => ASTHexLiteral(Integer.parseInt(x, 16)))
 
     // No '\'' (0x27) and no '\\' (0x5c)
     val Character: Parser[String] = (pcharIn(0x01.toChar to 0x26.toChar) | pcharIn(0x28.toChar to 0x5b.toChar) | pcharIn(0x5d.toChar to 0x7f.toChar)).string
     val CharacterEscape: Parser[String] = (pcharIn('\\') ~ pcharIn('\\', 't', 'n', '\'')).string
-    val CharacterLiteral: Parser[String] = pchar('\'') *> (Character | CharacterEscape).string <* pchar('\'')
+    val CharacterLiteral: Parser[ASTCharacterLiteral] = (pchar('\'') *> (Character | CharacterEscape).string <* pchar('\'')).map(x => ASTCharacterLiteral(x))
 
     // No '"' (0x22) and no '\\' (0x5c)
     val StringCharacter: Parser[String] = (pcharIn(0x01.toChar to 0x21.toChar) | pcharIn(0x23.toChar to 0x5b.toChar) | pcharIn(0x5d.toChar to 0x7f.toChar)).string
     val StringEscape: Parser[String] = (pcharIn('\\') ~ pcharIn('\\', 't', 'n', '"')).string
-    val StringLiteral: Parser[String] = pchar('"') *> (StringCharacter | StringEscape).rep0.string <* pchar('"')
+    val StringLiteral: Parser[ASTStringLiteral] = (pchar('"') *> (StringCharacter | StringEscape).rep0.string <* pchar('"')).map(x => ASTStringLiteral(x))
 
-    val Literals: Parser[String] = NullLiteral | BoolLiteral | BinaryLiteral | IntLiteral | HexLiteral | CharacterLiteral | StringLiteral
+    val Literals: Parser[ASTNullLiteral | ASTBoolLiteral | ASTIntLiteral
+      | ASTBinaryLiteral | ASTHexLiteral | ASTCharacterLiteral
+      | ASTStringLiteral] = NullLiteral | BoolLiteral | BinaryLiteral | HexLiteral | IntLiteral | CharacterLiteral | StringLiteral
+
+    val x = Literals.parseAll("\"hey :D\"")
 
     // Source files
     //TODO PackageDecl rule
@@ -61,7 +78,7 @@ class WhileyParser() {
 
     //val x = ImportDecl.parse("import yes")
     //val x = ImportDecl.parse("import * from a::pkg::File")
-    val x = ImportDecl.parseAll("import a::pkg::File with Oii")
+    //val x = ImportDecl.parseAll("import a::pkg::File with Oii")
 
     //TODO TypeDecl rule
     //TODO StaticVarDecl rule
