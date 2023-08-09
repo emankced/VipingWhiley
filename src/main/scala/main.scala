@@ -4,8 +4,9 @@
 //import cats.syntax.all._;
 
 @main
-def main(): Unit = {
+def main(sourceFile: String): Unit = {
   println("VipingWhiley")
+  val sourceCode = scala.io.Source.fromFile(sourceFile).mkString
   val wp = WhileyParser();
-  wp.parse()
+  wp.parse(sourceCode)
 }

@@ -5,7 +5,7 @@ import cats.implicits.toShow
 import AST.*
 
 class WhileyParser() {
-  def parse(): Unit = {
+  def parse(sourceCode: String): Unit = {
     val LineTerminator: Parser[Unit] = lf | cr | crlf
     val Indentation: Parser[String] = (htab | sp).rep.string
 
@@ -66,8 +66,6 @@ class WhileyParser() {
       | ASTBinaryLiteral | ASTHexLiteral | ASTCharacterLiteral
       | ASTStringLiteral] = NullLiteral | BoolLiteral | BinaryLiteral | HexLiteral | IntLiteral | CharacterLiteral | StringLiteral
 
-    val x = Literals.parseAll("0xa_d")
-
     // Source files
     // PackageDecl rule
     val PackageDecl = (pstring("package") ~ Indentation) *> (Ident ~ (pcharIn('.') ~ Ident).rep0).string
@@ -89,9 +87,10 @@ class WhileyParser() {
     //TODO Modifier rule
 
     //TODO SourceFile rule
-    val SourceFile = PackageDecl.? ~ (ImportDecl).rep0
+    val SourceFile = LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ (ImportDecl <* LineTerminator | LineTerminator).rep0
 
-    //val x = StringLiteral.parse("\"\\nhey_kek lol \\\"\"")
+    val x = SourceFile.parseAll(sourceCode)
+
     x match {
       case Left(error) => println(error.show)
       case Right(v) => println(v)
