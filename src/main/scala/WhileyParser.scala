@@ -69,7 +69,8 @@ class WhileyParser() {
     val x = Literals.parseAll("0xa_d")
 
     // Source files
-    //TODO PackageDecl rule
+    // PackageDecl rule
+    val PackageDecl = (pstring("package") ~ Indentation) *> (Ident ~ (pcharIn('.') ~ Ident).rep0).string
 
     //TODO ImportDecl rule
     val FromSpec = (pcharIn('*') | Ident ~ (pchar(',') *> Indentation.? *> Ident).rep0) <* Indentation *> pstringIn(List("from")) <* Indentation
@@ -88,6 +89,7 @@ class WhileyParser() {
     //TODO Modifier rule
 
     //TODO SourceFile rule
+    val SourceFile = PackageDecl.? ~ (ImportDecl).rep0
 
     //val x = StringLiteral.parse("\"\\nhey_kek lol \\\"\"")
     x match {
