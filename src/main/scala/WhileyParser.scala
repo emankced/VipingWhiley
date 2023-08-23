@@ -82,22 +82,26 @@ class WhileyParser() {
     //TODO Expr rules
 
     // Type rules
-    // ATTENTION: Only TermType is supported, which is called Type here. UnionType is not supported!!!
     //TODO: For now only PrimitiveType is implemented. Missing: RecordType, ReferenceType, NominalType, ArrayType, FunctionType, MethodType
     val NullType = pstring("null")
     val BoolType = pstring("bool")
     val ByteType = pstring("byte")
     val IntType = pstring("int")
     val VoidType = pstring("void")
-    //TODO RealType is not specified in documentation...
+    //TODO RealType is not properly specified in documentation...
 
     //TODO RealType missing!
     val PrimitiveType = VoidType | NullType | BoolType | ByteType | IntType
-    val Type: Parser[String] = Parser.recursive[String] { recurse => (PrimitiveType | (pcharIn('(') <* Indentation *> Type <* Indentation *> pcharIn(')'))).string }
+    val Type: Parser[String] = Parser.recursive[String] { recurse =>
+      val TermType = (PrimitiveType | (pcharIn('(') <* Indentation *> recurse <* Indentation *> pcharIn(')'))).string
+      val UnionType = (TermType ~ (Indentation *> pcharIn('|') <* Indentation *> TermType).rep0).string
+
+      Parser.oneOf(List(TermType, UnionType))
+    }
 
     //TODO TypeDecl rule
     //TODO StaticVarDecl rule
-    val StaticVarDecl = Type <* Indentation *> Ident ~ (Indentation *> pchar('=') <* Indentation *> Expr).?
+    val StaticVarDecl = Type <* Indentation *> Ident //~ (Indentation *> pchar('=') <* Indentation *> Expr).?
 
     //TODO FunctionDecl rulefrom
     //TODO MethodDecl rule
@@ -106,7 +110,7 @@ class WhileyParser() {
     val Modifier = pstringIn(List("public", "private", "native", "export", "final"))
 
     //TODO SourceFile rule
-    val SourceFile = LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ ((ImportDecl <* LineTerminator | LineTerminator).rep0 | ((Modifier <* Indentation).rep0 ~ StaticVarDecl))
+    val SourceFile = LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ ((ImportDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ StaticVarDecl <* LineTerminator) | (StaticVarDecl <* LineTerminator) | LineTerminator).rep0
 
     val x = SourceFile.parseAll(sourceCode)
 
