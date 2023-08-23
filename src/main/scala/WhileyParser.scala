@@ -16,8 +16,9 @@ class WhileyParser() {
     //TODO comment parser
 
     // Identifiers
-    val Ident: Parser[String] = _Letter.rep.string
+    val Ident: Parser[ASTIdent] = _Letter.rep.string.map(x => ASTIdent(x))
 
+    /*
     // Keywords
     val keyword_list = List("all", "any", "assert", "assume", "bool", "break", "byte",
       "continue", "else", "ensures", "export", "false", "finite", "for",
@@ -32,6 +33,7 @@ class WhileyParser() {
     val keyword_identifier_list = List("constant")
     // Missing: from, type
     val KeywordIdentifier: Parser[String] = pstringIn(keyword_identifier_list)
+    */
 
     // Literals
     val NullLiteral: Parser[ASTNullLiteral] = pstringIn(List("null")).map(x => ASTNullLiteral())
@@ -68,12 +70,12 @@ class WhileyParser() {
 
     // Source files
     // PackageDecl rule
-    val PackageDecl = (pstring("package") ~ Indentation) *> (Ident ~ (pcharIn('.') ~ Ident).rep0).string
+    val PackageDecl: Parser[ASTPackageDecl] = (pstring("package") ~ Indentation) *> (Ident ~ (pcharIn('.') ~ Ident).rep0).string.map(x => ASTPackageDecl(x))
 
     //TODO ImportDecl rule
     val FromSpec = (pcharIn('*') | Ident ~ (pchar(',') *> Indentation.? *> Ident).rep0) <* Indentation *> pstringIn(List("from")) <* Indentation
     val WithSpec = pstringIn(List("with")) <* Indentation *> (pcharIn('*') | (Ident ~ (pchar(',') *> Ident).rep0))
-    val ImportDecl = (pstringIn(List("import")) <* Indentation *> FromSpec.backtrack.? ~ Ident ~ (pstringIn(List("::")) ~ (Ident | pcharIn('*').string)).rep0 ~ (Indentation *> WithSpec).?).string
+    val ImportDecl: Parser[ASTImportDecl] = (pstringIn(List("import")) <* Indentation *> FromSpec.backtrack.? ~ Ident ~ (pstringIn(List("::")) ~ (Ident | pcharIn('*').string)).rep0 ~ (Indentation *> WithSpec).?).string.map(x => ASTImportDecl(x))
 
     //val x = ImportDecl.parse("import yes")
     //val x = ImportDecl.parse("import * from a::pkg::File")
@@ -83,29 +85,33 @@ class WhileyParser() {
 
     // Type rules
     //TODO: For now only PrimitiveType is implemented. Missing: RecordType, ReferenceType, NominalType, ArrayType, FunctionType, MethodType
+    /*
     val NullType = pstring("null")
     val BoolType = pstring("bool")
     val ByteType = pstring("byte")
     val IntType = pstring("int")
     val VoidType = pstring("void")
+    */
     //TODO RealType is not properly specified in documentation...
 
     //TODO RealType missing!
-    val PrimitiveType = VoidType | NullType | BoolType | ByteType | IntType
-    val Type: Parser[String] = Parser.recursive[String] { recurse =>
-      val TermType = (PrimitiveType | (pcharIn('(') <* Indentation *> recurse <* Indentation *> pcharIn(')'))).string
-      val UnionType = (TermType ~ (Indentation *> pcharIn('|') <* Indentation *> TermType).rep0).string
+    val PrimitiveType = pstringIn(List("null", "bool", "byte", "int", "void"))
+    val Type: Parser[ASTType] = Parser.recursive[String] { recurse =>
+      val TermType = (PrimitiveType | (pcharIn('(') <* Indentation.? *> recurse <* Indentation.? *> pcharIn(')'))).string
 
-      Parser.oneOf(List(TermType, UnionType))
-    }
+      //TODO fix UnionType
+      //val UnionType = (TermType ~ (Indentation.?.void *> pcharIn('|').string <* Indentation.?.void *> TermType).rep).string
+
+      Parser.oneOf(List(TermType))
+    }.map(x => ASTType(x))
 
     // Expr rule
     val Expr: Parser[String] = Parser.recursive[String] { recurse =>
       //TODO Missing: CastExpr, LambdaExpr, ArrayExpr, RecordExpr, ReferenceExpr
-      val ArithmeticNegationExpr = pchar('-') <* Indentation *> recurse
-      val ArithmeticRelationalExpr = recurse <* Indentation *> pstringIn(List("<", "<=", "=>", ">")) <* Indentation *> recurse
-      val ArithmeticAdditiveExpr = recurse <* Indentation *> pcharIn('+', '-') <* Indentation *> recurse
-      val ArithmeticMultiplicativeExpr = recurse <* Indentation *>  pcharIn('*', '/', '%') <* Indentation *> recurse
+      val ArithmeticNegationExpr = pchar('-') <* Indentation.? *> recurse
+      val ArithmeticRelationalExpr = recurse <* Indentation.? *> pstringIn(List("<", "<=", "=>", ">")) <* Indentation.? *> recurse
+      val ArithmeticAdditiveExpr = recurse <* Indentation.? *> pcharIn('+', '-') <* Indentation.? *> recurse
+      val ArithmeticMultiplicativeExpr = recurse <* Indentation.? *>  pcharIn('*', '/', '%') <* Indentation.? *> recurse
       val ArithmeticExpr = ArithmeticNegationExpr | ArithmeticRelationalExpr | ArithmeticAdditiveExpr | ArithmeticMultiplicativeExpr
 
       /*
@@ -116,7 +122,7 @@ class WhileyParser() {
       */
       val TermExpr = Ident | Literals | pcharIn('(') <* Indentation *> recurse <* Indentation *> pcharIn(')')
 
-      Parser.oneOf(List(ArithmeticExpr.string, TermExpr.string))
+      (TermExpr | ArithmeticExpr).string
     }
 
     //TODO TypeDecl rule
