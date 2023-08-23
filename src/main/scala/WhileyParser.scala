@@ -99,9 +99,29 @@ class WhileyParser() {
       Parser.oneOf(List(TermType, UnionType))
     }
 
+    // Expr rule
+    val Expr: Parser[String] = Parser.recursive[String] { recurse =>
+      //TODO Missing: CastExpr, LambdaExpr, ArrayExpr, RecordExpr, ReferenceExpr
+      val ArithmeticNegationExpr = pchar('-') <* Indentation *> recurse
+      val ArithmeticRelationalExpr = recurse <* Indentation *> pstringIn(List("<", "<=", "=>", ">")) <* Indentation *> recurse
+      val ArithmeticAdditiveExpr = recurse <* Indentation *> pcharIn('+', '-') <* Indentation *> recurse
+      val ArithmeticMultiplicativeExpr = recurse <* Indentation *>  pcharIn('*', '/', '%') <* Indentation *> recurse
+      val ArithmeticExpr = ArithmeticNegationExpr | ArithmeticRelationalExpr | ArithmeticAdditiveExpr | ArithmeticMultiplicativeExpr
+
+      /*
+      val BitwiseExpr
+      val EqualityExpr
+      val InvokeExpr
+      val LogicalExpr
+      */
+      val TermExpr = Ident | Literals | pcharIn('(') <* Indentation *> recurse <* Indentation *> pcharIn(')')
+
+      Parser.oneOf(List(ArithmeticExpr.string, TermExpr.string))
+    }
+
     //TODO TypeDecl rule
     //TODO StaticVarDecl rule
-    val StaticVarDecl = Type <* Indentation *> Ident //~ (Indentation *> pchar('=') <* Indentation *> Expr).?
+    val StaticVarDecl = Type <* Indentation *> Ident ~ (Indentation *> pchar('=') <* Indentation *> Expr).?
 
     //TODO FunctionDecl rulefrom
     //TODO MethodDecl rule
