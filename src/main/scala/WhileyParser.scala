@@ -64,9 +64,7 @@ class WhileyParser() {
     val StringEscape: Parser[String] = (pcharIn('\\') ~ pcharIn('\\', 't', 'n', '"')).string
     val StringLiteral: Parser[ASTStringLiteral] = (pchar('"') *> (StringCharacter | StringEscape).rep0.string <* pchar('"')).map(x => ASTStringLiteral(x))
 
-    val Literals: Parser[ASTNullLiteral | ASTBoolLiteral | ASTIntLiteral
-      | ASTBinaryLiteral | ASTHexLiteral | ASTCharacterLiteral
-      | ASTStringLiteral] = NullLiteral | BoolLiteral | BinaryLiteral | HexLiteral | IntLiteral | CharacterLiteral | StringLiteral
+    val Literals: Parser[ASTNode] = NullLiteral | BoolLiteral | BinaryLiteral | HexLiteral | IntLiteral | CharacterLiteral | StringLiteral
 
     // Source files
     // PackageDecl rule
@@ -127,7 +125,7 @@ class WhileyParser() {
 
     //TODO TypeDecl rule
     //TODO StaticVarDecl rule
-    val StaticVarDecl = Type <* Indentation *> Ident ~ (Indentation *> pchar('=') <* Indentation *> Expr).?
+    val StaticVarDecl = (Type ~ (Indentation.void *> Ident) ~ (Indentation.void ~ pchar('=').void ~ Indentation.void *> Expr).?).map((x /*: Either[Parser.Error, (Option[ASTPackageDecl], List[Any])])*/ => ASTStaticVarDecl(x._1._1, x._1._2, x._2)))
 
     //TODO FunctionDecl rulefrom
     //TODO MethodDecl rule
@@ -136,13 +134,34 @@ class WhileyParser() {
     val Modifier = pstringIn(List("public", "private", "native", "export", "final"))
 
     //TODO SourceFile rule
-    val SourceFile = LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ ((ImportDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ StaticVarDecl <* LineTerminator) | (StaticVarDecl <* LineTerminator) | LineTerminator).rep0
+    val SourceFile = (LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ ((ImportDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (StaticVarDecl <* LineTerminator)) | (StaticVarDecl <* LineTerminator) | LineTerminator.void).rep0).map(x => {
+      var root: List[ASTNode] = List()
+
+      x._1 match {
+        case Some(x) => root = root ++ List(x)
+        case _ =>
+      }
+
+      for(node <- x._2) {
+        node match {
+          case x: ASTNode => root = root ++ List(x)
+          case _ =>
+        }
+      }
+
+      root
+    })
 
     val x = SourceFile.parseAll(sourceCode)
 
     x match {
       case Left(error) => println(error.show)
-      case Right(v) => println(v)
+      case Right(v) => {
+        //println(v)
+        for(node <- v) {
+          println(node.to_viper())
+        }
+      }
     }
   }
 }
