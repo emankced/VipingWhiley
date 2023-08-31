@@ -127,7 +127,11 @@ class WhileyParser() {
     //TODO StaticVarDecl rule
     val StaticVarDecl = (Type ~ (Indentation.void *> Ident) ~ (Indentation.void ~ pchar('=').void ~ Indentation.void *> Expr).?).map((x /*: Either[Parser.Error, (Option[ASTPackageDecl], List[Any])])*/ => ASTStaticVarDecl(x._1._1, x._1._2, x._2)))
 
-    //TODO FunctionDecl rulefrom
+    //TODO FunctionDecl rule
+    val Variable = Type ~ (Indentation *> Ident)
+    val Parameters = (Variable ~ (pchar(',') ~ Indentation.rep, Variable).rep0).?
+    val FunctionDecl =  pstring("function") ~ Indentation *> Ident ~ (Indentation.rep0 ~ pchar('(') ~ Indentation.rep0 *> Parameters <* Indentation.rep0 ~ pchar(')') ~ Indentation.rep0 ~ pstring("->") ~ Indentation.rep0) ~ (pchar('(') ~ Indentation.rep0 *> Parameters <* Indentation.rep0 ~ pchar(')')) ~ (pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr)).rep0
+
     //TODO MethodDecl rule
 
     //TODO Modifier rule
