@@ -104,7 +104,7 @@ class WhileyParser() {
     }.map(x => ASTType(x))
 
     // Expr rule
-    val Expr: Parser[String] = Parser.recursive[String] { recurse =>
+    val Expr: Parser[ASTExpr] = Parser.recursive[ASTExpr] { recurse =>
       //TODO Missing: CastExpr, LambdaExpr, ArrayExpr, RecordExpr, ReferenceExpr
       val ArithmeticNegationExpr = pchar('-') <* Indentation.? *> recurse
       val ArithmeticRelationalExpr = recurse <* Indentation.? *> pstringIn(List("<", "<=", "=>", ">")) <* Indentation.? *> recurse
@@ -120,7 +120,8 @@ class WhileyParser() {
       */
       val TermExpr = Ident | Literals | pcharIn('(') <* Indentation *> recurse <* Indentation *> pcharIn(')')
 
-      (TermExpr | ArithmeticExpr).string
+      //TODO properly parse expressions
+      (TermExpr | ArithmeticExpr).string.map(x => ASTExpr(x))
     }
 
     //TODO TypeDecl rule

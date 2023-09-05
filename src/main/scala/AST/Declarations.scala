@@ -7,6 +7,11 @@ package AST {
     override def to_viper(): String = typeName
   }
 
+  // TODO handle actual expressions instead of accepting a string blindly
+  case class ASTExpr(expr: String) extends ASTNode {
+    override def to_viper(): String = expr
+  }
+
   case class ASTPackageDecl(name: String) extends ASTNode {
     override def to_viper(): String = "// package " + name
   }
@@ -15,7 +20,7 @@ package AST {
     override def to_viper(): String = "// " + import_string
   }
 
-  case class ASTStaticVarDecl(varType: ASTType, ident: ASTIdent, value: Option[String]) extends ASTNode { //TODO change Option[String] to Option[ASTExpr]
+  case class ASTStaticVarDecl(varType: ASTType, ident: ASTIdent, value: Option[ASTExpr]) extends ASTNode {
     override def to_viper(): String = {
       //TODO cover: "null", "byte", "void", which are not supported by Viper
       val typeName = if(varType.typeName.equals("int")) {
@@ -27,7 +32,7 @@ package AST {
       }
 
       value match {
-        case Some(x) => "var " + ident.name + ": " + typeName + " = " + x
+        case Some(x) => "var " + ident.name + ": " + typeName + " = " + x.to_viper()
         case _ => "var " + ident.name + ": " + typeName
       }
     }
