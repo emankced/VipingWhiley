@@ -107,7 +107,7 @@ class WhileyParser() {
     val Expr: Parser[ASTExpr] = Parser.recursive[ASTExpr] { recurse =>
       //TODO Missing: CastExpr, LambdaExpr, ArrayExpr, RecordExpr, ReferenceExpr
       val ArithmeticNegationExpr = pchar('-') <* Indentation.? *> recurse
-      val ArithmeticRelationalExpr = recurse <* Indentation.? *> pstringIn(List("<", "<=", "=>", ">")) <* Indentation.? *> recurse
+      val ArithmeticRelationalExpr = recurse <* Indentation.? *> pstringIn(List("<", "<=", ">=", ">")) <* Indentation.? *> recurse
       val ArithmeticAdditiveExpr = recurse <* Indentation.? *> pcharIn('+', '-') <* Indentation.? *> recurse
       val ArithmeticMultiplicativeExpr = recurse <* Indentation.? *>  pcharIn('*', '/', '%') <* Indentation.? *> recurse
       val ArithmeticExpr = ArithmeticNegationExpr | ArithmeticRelationalExpr | ArithmeticAdditiveExpr | ArithmeticMultiplicativeExpr
@@ -116,26 +116,31 @@ class WhileyParser() {
       val BitwiseExpr
       val EqualityExpr
       val InvokeExpr
-      val LogicalExpr
       */
-      val TermExpr = Ident | Literals | pcharIn('(') <* Indentation *> recurse <* Indentation *> pcharIn(')')
+
+      val LogicalNotExpr = pchar('!') ~ Indentation.? *> recurse
+      val LogicalBinaryExpr = recurse ~ (Indentation.? *> pstringIn(List("<==>", "==>", "&&", "||")) <* Indentation.?) ~ recurse
+      val LogicalQuantExpr = pstringIn(List("no", "some", "all")) ~ (Indentation.? ~ pchar('{') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?)).rep0 | (recurse <* Indentation.?) <* pchar('}'))
+      val LogicalExpr = LogicalNotExpr | LogicalBinaryExpr | LogicalQuantExpr
+
+      val TermExpr = Ident | Literals | (pcharIn('(') <* Indentation.?) ~ recurse ~ (Indentation.? *> pcharIn(')'))
 
       //TODO properly parse expressions
-      (TermExpr | ArithmeticExpr).string.map(x => ASTExpr(x))
+      (TermExpr.backtrack | ArithmeticExpr.backtrack | LogicalExpr.backtrack).string.map(x => ASTExpr(x))
     }
 
     //TODO TypeDecl rule
     //TODO StaticVarDecl rule
-    val StaticVarDecl = (Type ~ (Indentation.void *> Ident) ~ (Indentation.void ~ pchar('=').void ~ Indentation.void *> Expr).?).map((x /*: Either[Parser.Error, (Option[ASTPackageDecl], List[Any])])*/ => ASTStaticVarDecl(x._1._1, x._1._2, x._2)))
+    val StaticVarDecl = (Type ~ (Indentation.void *> Ident) ~ (Indentation.void ~ pchar('=').void ~ Indentation.void *> Expr.backtrack).?).map((x /*: Either[Parser.Error, (Option[ASTPackageDecl], List[Any])])*/ => ASTStaticVarDecl(x._1._1, x._1._2, x._2)))
 
     //TODO FunctionDecl rule
     val Variable = (Type ~ (Indentation *> Ident)).map(x => ASTVariable(x._1, x._2))
-    val Parameters = (Variable ~ (pchar(',') ~ Indentation.rep0 *> Variable).rep0).?.map {
+    val Parameters = (Variable ~ (pchar(',') ~ Indentation.? *> Variable).rep0).?.map {
       case Some(x) => ASTParameters(List(x._1) ++ x._2)
       case _ => ASTParameters(List())
     }
     // Code blocks aren't handled here
-    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.rep0 ~ pchar('(') ~ Indentation.rep0 *> Parameters <* Indentation.rep0 ~ pchar(')') ~ Indentation.rep0 ~ pstring("->") ~ Indentation.rep0) ~ (pchar('(') ~ Indentation.rep0 *> Parameters <* Indentation.rep0 ~ pchar(')') ~ Indentation.rep0) ~ (crlf.?.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr)).rep0 <* Indentation.rep0 ~ pchar(':')).map(x => {
+    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (crlf.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 <* Indentation.? ~ pchar(':')).map(x => {
       val ensures = x._2.filter(x => x._1.equals("ensures")).map(x => x._2)
       val requires = x._2.filter(x => x._1.equals("requires")).map(x => x._2)
 
