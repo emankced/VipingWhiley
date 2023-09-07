@@ -13,21 +13,27 @@ class WhileyParser() {
     val _Letter: Parser[Char] = pcharIn('_') | alpha
     // val Digit: Parser[Char] = digit
 
+    val keyword_list = List("all", "any", "assert", "assume", "bool", "break", "byte",
+      "case", "catch", "continue", "debug", "default", "do", "else", "ensures", "export",
+      "fail", "false", "final", "finite", "for",
+      "function", "if", "import", "in", "int", "is", "method", "native",
+      "new", "no", "null", "private", "protected", "public", "requires", "return",
+      "skip", "some", "switch", "this", "throw", "throws", "total", "true", "try",
+      "void", "where", "while")
+
     //TODO comment parser
 
     // Identifiers
-    val Ident: Parser[ASTIdent] = _Letter.rep.string.map(x => ASTIdent(x))
+    val Ident: Parser[ASTIdent] = _Letter.rep.string.map(x => {
+      if(keyword_list.contains(x)) {
+        System.err.println("Keywords may not be used as identifiers. Keyword used: " + x)
+        System.exit(-1)
+      }
+
+      ASTIdent(x)
+    })
 
     /*
-    // Keywords
-    val keyword_list = List("all", "any", "assert", "assume", "bool", "break", "byte",
-      "continue", "else", "ensures", "export", "false", "finite", "for",
-      "function", "if", "import", "in", "int", "is", "method", "native",
-      "new", "null", "private", "protected", "public", "requires", "return",
-      "skip", "total", "true", "void", "where", "while")
-    /* Missing: case, catch, debug, default, do, fail, final, native,
-                no, some, switch, throw, this, throws, try
-     */
     val Keyword: Parser[String] = pstringIn(keyword_list)
 
     val keyword_identifier_list = List("constant")
