@@ -89,13 +89,6 @@ class WhileyParser() {
 
     // Type rules
     //TODO: For now only PrimitiveType is implemented. Missing: RecordType, ReferenceType, NominalType, ArrayType, FunctionType, MethodType
-    /*
-    val NullType = pstring("null")
-    val BoolType = pstring("bool")
-    val ByteType = pstring("byte")
-    val IntType = pstring("int")
-    val VoidType = pstring("void")
-    */
     //TODO RealType is not properly specified in documentation...
 
     //TODO RealType missing!
@@ -111,12 +104,14 @@ class WhileyParser() {
 
     // Expr rule
     val Expr: Parser[ASTExpr] = Parser.recursive[ASTExpr] { recurse =>
+      val TermExpr = Ident | Literals | ((pcharIn('(') <* Indentation.?) ~ recurse ~ (Indentation.? *> pcharIn(')')).backtrack)
+
       //TODO Missing: CastExpr, LambdaExpr, ArrayExpr, RecordExpr, ReferenceExpr
       val ArithmeticNegationExpr = pchar('-') <* Indentation.? *> recurse
-      val ArithmeticRelationalExpr = recurse <* Indentation.? *> pstringIn(List("<", "<=", ">=", ">")) <* Indentation.? *> recurse
-      val ArithmeticAdditiveExpr = recurse <* Indentation.? *> pcharIn('+', '-') <* Indentation.? *> recurse
-      val ArithmeticMultiplicativeExpr = recurse <* Indentation.? *>  pcharIn('*', '/', '%') <* Indentation.? *> recurse
-      val ArithmeticExpr = ArithmeticNegationExpr | ArithmeticRelationalExpr | ArithmeticAdditiveExpr | ArithmeticMultiplicativeExpr
+      val ArithmeticRelationalExpr = TermExpr <* Indentation.? *> pstringIn(List("<", "<=", ">=", ">")) <* Indentation.? *> recurse
+      val ArithmeticAdditiveExpr = TermExpr <* Indentation.? *> pcharIn('+', '-') <* Indentation.? *> recurse
+      val ArithmeticMultiplicativeExpr = TermExpr <* Indentation.? *>  pcharIn('*', '/', '%') <* Indentation.? *> recurse
+      val ArithmeticExpr = (ArithmeticNegationExpr.backtrack | ArithmeticRelationalExpr.backtrack | ArithmeticAdditiveExpr.backtrack | ArithmeticMultiplicativeExpr.backtrack).withContext("Expected Arithmetic Expression!")
 
       /*
       val BitwiseExpr
@@ -125,15 +120,23 @@ class WhileyParser() {
       */
 
       val LogicalNotExpr = pchar('!') ~ Indentation.? *> recurse
-      val LogicalBinaryExpr = recurse ~ (Indentation.? *> pstringIn(List("<==>", "==>", "&&", "||")) <* Indentation.?) ~ recurse
+      val LogicalBinaryExpr = TermExpr ~ (Indentation.? *> pstringIn(List("<==>", "==>", "&&", "||")) <* Indentation.?) ~ recurse
       val LogicalQuantExpr = pstringIn(List("no", "some", "all")) ~ (Indentation.? ~ pchar('{') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?)).rep0 | (recurse <* Indentation.?) <* pchar('}'))
-      val LogicalExpr = LogicalNotExpr | LogicalBinaryExpr | LogicalQuantExpr
+      val LogicalExpr = LogicalNotExpr.backtrack | LogicalBinaryExpr.backtrack | LogicalQuantExpr.backtrack
 
-      val TermExpr = Ident | Literals | (pcharIn('(') <* Indentation.?) ~ recurse ~ (Indentation.? *> pcharIn(')'))
 
       //TODO properly parse expressions
-      (TermExpr.backtrack | ArithmeticExpr.backtrack | LogicalExpr.backtrack).string.map(x => ASTExpr(x))
+      // old idea TRY LOOKAHEAD. That wasn't necessary :)
+      (ArithmeticExpr.backtrack | LogicalExpr.backtrack | TermExpr).string.map(x => ASTExpr(x))
     }
+
+    val testExprInput = "5 + 5"
+    val testExpr = Expr.parseAll(testExprInput)
+    testExpr match {
+      case Left(error) => { System.err.println(error.show); System.exit(-2) }
+      case Right(v) =>
+    }
+
 
     //TODO TypeDecl rule
     //TODO StaticVarDecl rule
@@ -146,7 +149,7 @@ class WhileyParser() {
       case _ => ASTParameters(List())
     }
     // Code blocks aren't handled here
-    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (crlf.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 <* Indentation.? ~ pchar(':')).map(x => {
+    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 <* Indentation.? ~ pchar(':')).map(x => {
       val ensures = x._2.filter(x => x._1.equals("ensures")).map(x => x._2)
       val requires = x._2.filter(x => x._1.equals("requires")).map(x => x._2)
 
