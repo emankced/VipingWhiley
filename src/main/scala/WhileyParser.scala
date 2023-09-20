@@ -154,10 +154,11 @@ class WhileyParser() {
     val CodeBlock = () => { scopeDepth += scopeStep; (LineTerminator *> sp.rep(scopeDepth, scopeDepth)).map(x => { scopeDepth -= scopeStep; x }) }
     val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock())).map(x => {
       // use decomposition: val (a, b) = x;
-      val ensures = x._1._2.filter(x => x._1.equals("ensures")).map(x => x._2)
-      val requires = x._1._2.filter(x => x._1.equals("requires")).map(x => x._2)
+      val ((((ident, parametersIn), parametersOut), ensuresAndRequires), codeBlock) = x
+      val ensures = ensuresAndRequires.filter((s, _) => s.equals("ensures")).map((_, node) => node)
+      val requires = ensuresAndRequires.filter((s, _) => s.equals("requires")).map((_, node) => node)
 
-      ASTFunctionDecl(x._1._1._1._1, x._1._1._1._2, x._1._1._2, ensures, requires)
+      ASTFunctionDecl(ident, parametersIn, parametersOut, ensures, requires)
     })
 
     //TODO MethodDecl rule
