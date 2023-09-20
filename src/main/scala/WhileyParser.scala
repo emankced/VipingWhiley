@@ -149,8 +149,11 @@ class WhileyParser() {
       case _ => ASTParameters(List())
     }
     // Code blocks aren't handled here
-    val CodeBlock =  LineTerminator *> Indentation
-    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock)).map(x => {
+    var scopeDepth = 0
+    val scopeStep = 4
+    val CodeBlock = () => { scopeDepth += scopeStep; (LineTerminator *> sp.rep(scopeDepth, scopeDepth)).map(x => { scopeDepth -= scopeStep; x }) }
+    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock())).map(x => {
+      // use decomposition: val (a, b) = x;
       val ensures = x._1._2.filter(x => x._1.equals("ensures")).map(x => x._2)
       val requires = x._1._2.filter(x => x._1.equals("requires")).map(x => x._2)
 
