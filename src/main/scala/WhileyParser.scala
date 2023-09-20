@@ -149,11 +149,12 @@ class WhileyParser() {
       case _ => ASTParameters(List())
     }
     // Code blocks aren't handled here
-    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 <* Indentation.? ~ pchar(':')).map(x => {
-      val ensures = x._2.filter(x => x._1.equals("ensures")).map(x => x._2)
-      val requires = x._2.filter(x => x._1.equals("requires")).map(x => x._2)
+    val CodeBlock =  LineTerminator *> Indentation
+    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock)).map(x => {
+      val ensures = x._1._2.filter(x => x._1.equals("ensures")).map(x => x._2)
+      val requires = x._1._2.filter(x => x._1.equals("requires")).map(x => x._2)
 
-      ASTFunctionDecl(x._1._1._1, x._1._1._2, x._1._2, ensures, requires)
+      ASTFunctionDecl(x._1._1._1._1, x._1._1._1._2, x._1._1._2, ensures, requires)
     })
 
     //TODO MethodDecl rule
