@@ -142,6 +142,18 @@ class WhileyParser() {
     //TODO StaticVarDecl rule
     val StaticVarDecl = (Type ~ (Indentation.void *> Ident) ~ (Indentation.void ~ pchar('=').void ~ Indentation.void *> Expr.backtrack).?).map((x /*: Either[Parser.Error, (Option[ASTPackageDecl], List[Any])])*/ => ASTStaticVarDecl(x._1._1, x._1._2, x._2)))
 
+    //TODO Statement
+    // Missing: LVal.Ident | LVal[Expr] | *Expr
+    val LVal = Ident
+    val AssignStmt = (LVal <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> LVal <* Indentation.?).rep0 ~ (pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0)
+    val testStmtInput = "x,z=42+1337-yz,73"
+    val testStmt = AssignStmt.parseAll(testStmtInput)
+    testStmt match {
+      case Left(error) => { System.err.println(error.show); System.exit(-2) }
+      case Right(v) =>
+    }
+
+
     //TODO FunctionDecl rule
     val Variable = (Type ~ (Indentation *> Ident)).map(x => ASTVariable(x._1, x._2))
     val Parameters = (Variable ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Variable).rep0).?.map {
