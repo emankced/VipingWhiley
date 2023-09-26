@@ -145,7 +145,10 @@ class WhileyParser() {
     //TODO Statement
     // Missing: LVal.Ident | LVal[Expr] | *Expr
     val LVal = Ident
-    val AssignStmt = (LVal <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> LVal <* Indentation.?).rep0 ~ (pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0)
+    val AssignStmt = ((LVal <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> LVal <* Indentation.?).rep0 ~ (pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0)).map(x => {
+      val ((lval0, lval_rest), (expr0, expr_rest)) = x
+      ASTAssignStmt(List(lval0) ++ lval_rest, List(expr0) ++ expr_rest)
+    })
     val testAssignStmtInput = "x,z=42+1337-yz,73"
     val testAssignStmt = AssignStmt.parseAll(testAssignStmtInput)
     testAssignStmt match {
@@ -153,7 +156,18 @@ class WhileyParser() {
       case Right(v) =>
     }
 
-    val VarDecl = (Type <* Indentation) ~ Ident ~ (Indentation.?.with1 ~ pchar(',') *> Type ~ (Indentation *> Ident)).rep0 ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0).?
+    val VarDecl = ((Type <* Indentation) ~ Ident ~ (Indentation.?.with1 ~ pchar(',') *> Type ~ (Indentation *> Ident)).rep0 ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0).?).map(x => {
+      val (((type0, ident0), type_ident_rest), option_expr0_expr_rest) = x
+
+      val type_ident = List((type0, ident0))++ type_ident_rest
+
+      val exprs = option_expr0_expr_rest match {
+        case Some((expr0, expr_rest)) => List(expr0) ++ expr_rest
+        case _ => List()
+      }
+
+      ASTVarDecl(type_ident, exprs)
+    })
     val testVarDeclInput = "int xz"
     val testVarDecl = VarDecl.parseAll(testVarDeclInput)
     testVarDecl match {
@@ -174,14 +188,18 @@ class WhileyParser() {
     var scopeDepth = 0
     val scopeStep = 4
     //TODO support empty lines
-    val CodeBlock = () => { scopeDepth += scopeStep; (LineTerminator *> sp.rep(scopeDepth, scopeDepth) ~ Statement).backtrack.rep0.map(x => { scopeDepth -= scopeStep; x }) }
+    val CodeBlock = () => { scopeDepth += scopeStep; (LineTerminator ~ sp.rep(scopeDepth, scopeDepth) *> Statement).backtrack.rep0.map(stmts => {
+      val res = ASTCodeBlock(scopeDepth, stmts)
+      scopeDepth -= scopeStep
+      res
+    }) }
     val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock())).map(x => {
       // use decomposition: val (a, b) = x;
       val ((((ident, parametersIn), parametersOut), ensuresAndRequires), codeBlock) = x
       val ensures = ensuresAndRequires.filter((s, _) => s.equals("ensures")).map((_, node) => node)
       val requires = ensuresAndRequires.filter((s, _) => s.equals("requires")).map((_, node) => node)
 
-      ASTFunctionDecl(ident, parametersIn, parametersOut, ensures, requires)
+      ASTFunctionDecl(ident, parametersIn, parametersOut, ensures, requires, codeBlock)
     })
 
     //TODO MethodDecl rule

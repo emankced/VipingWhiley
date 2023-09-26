@@ -4,7 +4,15 @@ package AST {
   }
 
   case class ASTType(typeName: String) extends ASTNode {
-    override def to_viper(): String = typeName
+    override def to_viper(): String = {
+      if(typeName.equals("int")) {
+        "Int"
+      } else if(typeName.equals("bool")) {
+        "Bool"
+      } else {
+        typeName
+      }
+    }
   }
 
   // TODO handle actual expressions instead of accepting a string blindly
@@ -73,22 +81,14 @@ package AST {
   case class ASTStaticVarDecl(varType: ASTType, ident: ASTIdent, value: Option[ASTExpr]) extends ASTNode {
     override def to_viper(): String = {
       //TODO cover: "null", "byte", "void", which are not supported by Viper
-      val typeName = if(varType.typeName.equals("int")) {
-        "Int"
-      } else if(varType.typeName.equals("bool")) {
-        "Bool"
-      } else {
-        varType.typeName
-      }
-
       value match {
-        case Some(x) => "var " + ident.name + ": " + typeName + " = " + x.to_viper()
-        case _ => "var " + ident.name + ": " + typeName
+        case Some(x) => "var " + ident.name + ": " + varType.to_viper() + " = " + x.to_viper()
+        case _ => "var " + ident.name + ": " + varType.to_viper()
       }
     }
   }
 
-  case class ASTFunctionDecl(ident: ASTIdent, parametersIn: ASTParameters, parametersOut: ASTParameters, requires: List[ASTExpr], ensures: List[ASTExpr]) extends ASTNode {
+  case class ASTFunctionDecl(ident: ASTIdent, parametersIn: ASTParameters, parametersOut: ASTParameters, requires: List[ASTExpr], ensures: List[ASTExpr], codeBlock: ASTCodeBlock) extends ASTNode {
     override def to_viper(): String = {
       var func = "function " + ident.to_viper() + "(" + parametersIn.to_viper() + "): " + parametersOut.to_viper_as_result_type()
 
@@ -100,7 +100,65 @@ package AST {
         func += "\n    ensures " + x.to_viper()
       }
 
-      func + "\n"
+      func + "\n" + codeBlock.to_viper()
+    }
+  }
+
+  case class ASTAssignStmt(lvals: List[ASTIdent], rvals: List[ASTExpr]) extends ASTNode {
+    override def to_viper(): String = {
+      var left_side = ""
+      var first = true
+      for(l <- lvals) {
+        if(!first) {
+          left_side += ", " + l.to_viper()
+        } else {
+          left_side += l.to_viper()
+          first = false
+        }
+      }
+
+      var right_side = ""
+      first = true
+      for(r <- rvals) {
+        if(!first) {
+          right_side += ", " + r.to_viper()
+        } else {
+          right_side += r.to_viper()
+          first = false
+        }
+      }
+
+      left_side  + " = " + right_side + ";"
+    }
+  }
+
+  case class ASTVarDecl(lvals: List[(ASTType, ASTIdent)], rvals: List[ASTExpr]) extends ASTNode {
+    override def to_viper(): String = {
+      var decls = ""
+      if(rvals.size > 0) {
+        for(((t, i), e) <- lvals.zip(rvals)) {
+          // var i: Int := 0;
+          decls += "var " + i.to_viper() + ": " + t.to_viper() + " := " + e.to_viper() + "; "
+        }
+      } else {
+        for((t, i) <- lvals) {
+          // var i: Int;
+          decls += "var " + i.to_viper() + ": " + t.to_viper() + "; "
+        }
+      }
+
+      decls
+    }
+  }
+
+  case class ASTCodeBlock(indentation: Int, stmts: List[ASTNode]) extends ASTNode {
+    override def to_viper(): String = {
+      var res = "{"
+      for(stmt <- stmts) {
+        res += "\n" + " "*indentation + stmt.to_viper()
+      }
+
+      res + "\n}"
     }
   }
 }
