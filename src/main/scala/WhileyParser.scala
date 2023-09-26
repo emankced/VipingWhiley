@@ -146,12 +146,22 @@ class WhileyParser() {
     // Missing: LVal.Ident | LVal[Expr] | *Expr
     val LVal = Ident
     val AssignStmt = (LVal <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> LVal <* Indentation.?).rep0 ~ (pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0)
-    val testStmtInput = "x,z=42+1337-yz,73"
-    val testStmt = AssignStmt.parseAll(testStmtInput)
-    testStmt match {
+    val testAssignStmtInput = "x,z=42+1337-yz,73"
+    val testAssignStmt = AssignStmt.parseAll(testAssignStmtInput)
+    testAssignStmt match {
       case Left(error) => { System.err.println(error.show); System.exit(-2) }
       case Right(v) =>
     }
+
+    val VarDecl = (Type <* Indentation) ~ Ident ~ (Indentation.?.with1 ~ pchar(',') *> Type ~ (Indentation *> Ident)).rep0 ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0).?
+    val testVarDeclInput = "int xz"
+    val testVarDecl = VarDecl.parseAll(testVarDeclInput)
+    testVarDecl match {
+      case Left(error) => { System.err.println(error.show); System.exit(-2) }
+      case Right(v) =>
+    }
+
+    val Statement = VarDecl | AssignStmt
 
 
     //TODO FunctionDecl rule
@@ -163,7 +173,8 @@ class WhileyParser() {
     // Code blocks aren't handled here
     var scopeDepth = 0
     val scopeStep = 4
-    val CodeBlock = () => { scopeDepth += scopeStep; (LineTerminator *> sp.rep(scopeDepth, scopeDepth)).map(x => { scopeDepth -= scopeStep; x }) }
+    //TODO support empty lines
+    val CodeBlock = () => { scopeDepth += scopeStep; (LineTerminator *> sp.rep(scopeDepth, scopeDepth) ~ Statement).backtrack.rep0.map(x => { scopeDepth -= scopeStep; x }) }
     val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock())).map(x => {
       // use decomposition: val (a, b) = x;
       val ((((ident, parametersIn), parametersOut), ensuresAndRequires), codeBlock) = x
