@@ -144,7 +144,7 @@ class WhileyParser() {
 
     //TODO FunctionDecl rule
     val Variable = (Type ~ (Indentation *> Ident)).map(x => ASTVariable(x._1, x._2))
-    val Parameters = (Variable ~ (pchar(',') ~ Indentation.? *> Variable).rep0).?.map {
+    val Parameters = (Variable ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Variable).rep0).?.map {
       case Some(x) => ASTParameters(List(x._1) ++ x._2)
       case _ => ASTParameters(List())
     }
