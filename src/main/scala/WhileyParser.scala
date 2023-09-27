@@ -142,42 +142,6 @@ class WhileyParser() {
     //TODO StaticVarDecl rule
     val StaticVarDecl = (Type ~ (Indentation *> Ident) ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr.backtrack).?).map((x /*: Either[Parser.Error, (Option[ASTPackageDecl], List[Any])])*/ => ASTStaticVarDecl(x._1._1, x._1._2, x._2)))
 
-    //TODO Statement
-    // Missing: LVal.Ident | LVal[Expr] | *Expr
-    val LVal = Ident
-    val AssignStmt = ((LVal <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> LVal <* Indentation.?).rep0 ~ (pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0)).map(x => {
-      val ((lval0, lval_rest), (expr0, expr_rest)) = x
-      ASTAssignStmt(List(lval0) ++ lval_rest, List(expr0) ++ expr_rest)
-    })
-    val testAssignStmtInput = "x,z=42+1337-yz,73"
-    val testAssignStmt = AssignStmt.parseAll(testAssignStmtInput)
-    testAssignStmt match {
-      case Left(error) => { System.err.println(error.show); System.exit(-2) }
-      case Right(v) =>
-    }
-
-    val VarDecl = ((Type <* Indentation) ~ Ident ~ (Indentation.?.with1 ~ pchar(',') *> Type ~ (Indentation *> Ident)).rep0 ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0).?).map(x => {
-      val (((type0, ident0), type_ident_rest), option_expr0_expr_rest) = x
-
-      val type_ident = List((type0, ident0))++ type_ident_rest
-
-      val exprs = option_expr0_expr_rest match {
-        case Some((expr0, expr_rest)) => List(expr0) ++ expr_rest
-        case _ => List()
-      }
-
-      ASTVarDecl(type_ident, exprs)
-    })
-    val testVarDeclInput = "int xz"
-    val testVarDecl = VarDecl.parseAll(testVarDeclInput)
-    testVarDecl match {
-      case Left(error) => { System.err.println(error.show); System.exit(-2) }
-      case Right(v) =>
-    }
-
-    val Statement = VarDecl | AssignStmt
-
-
     //TODO FunctionDecl rule
     val Variable = (Type ~ (Indentation *> Ident)).map(x => ASTVariable(x._1, x._2))
     val Parameters = (Variable ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Variable).rep0).?.map {
@@ -185,15 +149,81 @@ class WhileyParser() {
       case _ => ASTParameters(List())
     }
     // Code blocks aren't handled here
-    var scopeDepth = 0
+    var scopeDepth = 4
     val scopeStep = 4
     //TODO support empty lines
-    val CodeBlock = () => { scopeDepth += scopeStep; (LineTerminator ~ sp.rep(scopeDepth, scopeDepth) *> Statement).backtrack.rep0.map(stmts => {
-      val res = ASTCodeBlock(scopeDepth, stmts)
-      scopeDepth -= scopeStep
-      res
-    }) }
-    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock())).map(x => {
+    val CodeBlock: Parser[ASTCodeBlock] = Parser.recursive[ASTCodeBlock] { recurse =>
+      //TODO Statement
+      // Missing: LVal.Ident | LVal[Expr] | *Expr
+      val LVal = Ident
+      val AssignStmt = ((LVal <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> LVal <* Indentation.?).rep0 ~ (pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0)).map(x => {
+        val ((lval0, lval_rest), (expr0, expr_rest)) = x
+        ASTAssignStmt(List(lval0) ++ lval_rest, List(expr0) ++ expr_rest)
+      })
+      val testAssignStmtInput = "x,z=42+1337-yz,73"
+      val testAssignStmt = AssignStmt.parseAll(testAssignStmtInput)
+      testAssignStmt match {
+        case Left(error) => { System.err.println(error.show); System.exit(-2) }
+        case Right(v) =>
+      }
+
+      val VarDecl = ((Type <* Indentation) ~ Ident ~ (Indentation.?.with1 ~ pchar(',') *> Type ~ (Indentation *> Ident)).rep0 ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0).?).map(x => {
+        val (((type0, ident0), type_ident_rest), option_expr0_expr_rest) = x
+
+        val type_ident = List((type0, ident0))++ type_ident_rest
+
+        val exprs = option_expr0_expr_rest match {
+          case Some((expr0, expr_rest)) => List(expr0) ++ expr_rest
+          case _ => List()
+        }
+
+        ASTVarDecl(type_ident, exprs)
+      })
+      val testVarDeclInput = "int xz"
+      val testVarDecl = VarDecl.parseAll(testVarDeclInput)
+      testVarDecl match {
+        case Left(error) => { System.err.println(error.show); System.exit(-2) }
+        case Right(v) =>
+      }
+
+      val ReturnStmt = (pstring("return") *> (Indentation *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0).?).map(x => {
+        val exprs = x match {
+          case Some(expr0, expr_rest) => List(expr0) ++ expr_rest
+          case _ => List()
+        }
+
+        ASTReturnStmt(exprs)
+      })
+      val testReturnStmtInput = "return 5"
+      val testReturnStmt = ReturnStmt.parseAll(testReturnStmtInput)
+      testReturnStmt match {
+        case Left(error) => { System.err.println(error.show); System.exit(-2) }
+        case Right(v) =>
+      }
+
+      val ControlStmt = pstringIn(List("break", "continue", "skip")).map(x => ASTControlStmt(x))
+
+      // If Statement
+      val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse ~ (LineTerminator ~ sp.rep ~ pstring("else") ~ Indentation ~ pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).backtrack.rep0 ~ (LineTerminator ~ sp.rep ~ pstring("else") ~ Indentation.? ~ pchar(':') *> recurse).backtrack.?)).map(x => {
+      //val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
+        val (if_guard, ((if_block, if_else_list), opt_else_block)) = x
+
+        val else_block = opt_else_block match {
+          case Some(b) => b
+          case _ => ASTCodeBlock(scopeDepth, List())
+        }
+        ASTIfStmt(if_guard, if_block, if_else_list, else_block)
+      })
+
+      val Statement = ControlStmt | ReturnStmt | IfStmt | VarDecl | AssignStmt
+
+      (LineTerminator *> sp.rep ~ Statement).backtrack.rep.map(x => {
+        val lines = x.toList.map((indentation, stmt) => (indentation.size, stmt))
+        ASTCodeBlock(scopeDepth, lines)
+      })
+    }
+
+    val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock)).map(x => {
       // use decomposition: val (a, b) = x;
       val ((((ident, parametersIn), parametersOut), ensuresAndRequires), codeBlock) = x
       val ensures = ensuresAndRequires.filter((s, _) => s.equals("ensures")).map((_, node) => node)

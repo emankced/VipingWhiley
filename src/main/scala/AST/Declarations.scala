@@ -151,14 +151,50 @@ package AST {
     }
   }
 
-  case class ASTCodeBlock(indentation: Int, stmts: List[ASTNode]) extends ASTNode {
+  case class ASTCodeBlock(block_indentation: Int, stmts: List[(Int, ASTNode)]) extends ASTNode {
     override def to_viper(): String = {
       var res = "{"
-      for(stmt <- stmts) {
+      for((indentation, stmt) <- stmts) {
         res += "\n" + " "*indentation + stmt.to_viper()
       }
 
       res + "\n}"
+    }
+  }
+
+  case class ASTReturnStmt(exprs: List[ASTExpr]) extends ASTNode {
+    override def to_viper(): String = {
+      var res = "return"
+      var first = true
+      for(e <- exprs) {
+        if(first) {
+          res += " " + e.to_viper()
+          first = false
+        } else {
+          res += ", " + e.to_viper()
+        }
+      }
+
+      res
+    }
+  }
+
+  case class ASTControlStmt(name: String) extends ASTNode {
+    override def to_viper(): String = name
+  }
+
+  case class ASTIfStmt(if_guard: ASTExpr, if_block: ASTCodeBlock, if_else_list: List[(ASTExpr, ASTCodeBlock)], else_block: ASTCodeBlock) extends ASTNode {
+    override def to_viper(): String = {
+      //if(x.second != null)
+      var res = "if(" + if_guard.to_viper() + ") " + if_block.to_viper()
+      for((guard, block) <- if_else_list) {
+        res += "\nelse if(" + guard.to_viper() + ") " + block.to_viper()
+      }
+      if(!else_block.stmts.isEmpty) {
+        res += "\nelse " + else_block.to_viper()
+      }
+
+      res
     }
   }
 }
