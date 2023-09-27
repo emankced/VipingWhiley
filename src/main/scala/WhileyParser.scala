@@ -148,9 +148,7 @@ class WhileyParser() {
       case Some(x) => ASTParameters(List(x._1) ++ x._2)
       case _ => ASTParameters(List())
     }
-    // Code blocks aren't handled here
-    var scopeDepth = 4
-    val scopeStep = 4
+
     //TODO support empty lines
     val CodeBlock: Parser[ASTCodeBlock] = Parser.recursive[ASTCodeBlock] { recurse =>
       //TODO Statement
@@ -210,7 +208,7 @@ class WhileyParser() {
 
         val else_block = opt_else_block match {
           case Some(b) => b
-          case _ => ASTCodeBlock(scopeDepth, List())
+          case _ => ASTCodeBlock(List())
         }
         ASTIfStmt(if_guard, if_block, if_else_list, else_block)
       })
@@ -219,7 +217,7 @@ class WhileyParser() {
 
       (LineTerminator *> sp.rep ~ Statement).backtrack.rep.map(x => {
         val lines = x.toList.map((indentation, stmt) => (indentation.size, stmt))
-        ASTCodeBlock(scopeDepth, lines)
+        ASTCodeBlock(lines)
       })
     }
 

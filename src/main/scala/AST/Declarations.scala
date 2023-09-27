@@ -151,14 +151,88 @@ package AST {
     }
   }
 
-  case class ASTCodeBlock(block_indentation: Int, stmts: List[(Int, ASTNode)]) extends ASTNode {
+  case class ASTCodeBlock(var stmts: List[(Int, ASTNode)]) extends ASTNode {
+    var block_indentation: Int = 0
     override def to_viper(): String = {
+      fix_block_indentation(0)
+
       var res = "{"
       for((indentation, stmt) <- stmts) {
         res += "\n" + " "*indentation + stmt.to_viper()
       }
 
       res + "\n}"
+    }
+
+    def fix_block_indentation(scopeDepth: Int): List[(Int, ASTNode)] = {
+      System.err.println("Scoping depth: " + scopeDepth)
+
+      if(block_indentation > 0) {
+        return List()
+      }
+
+      block_indentation = scopeDepth + 4
+      var i = 0
+      var return_to_parent_from = -1
+      while(i < stmts.size) {
+        val (ind, stmt) = stmts(i)
+        if(ind > block_indentation) {
+          System.err.println("Error: scope depth too high: " + ind + ">" + block_indentation)
+          System.exit(-1)
+        } else if(ind < block_indentation) {
+          if(return_to_parent_from == -1) {
+            return_to_parent_from = i
+          }
+        }
+
+        stmt match {
+          case ASTIfStmt(_, cb0, cb_rest, cb1) => {
+            val ret0 = cb0.fix_block_indentation(block_indentation);
+              if(!ret0.isEmpty) {
+                stmts = stmts ++ ret0
+              } else {
+
+                var added_something = false
+                for((_, cb) <- cb_rest) {
+                  val ret = cb1.fix_block_indentation(block_indentation);
+                  if(!ret.isEmpty) {
+                    if(added_something) {
+                      System.err.println("Error: Too many dangling statements!")
+                      System.exit(-1)
+                    }
+                    stmts = stmts ++ ret
+                    added_something = true
+                  }
+                }
+
+                val ret1 = cb1.fix_block_indentation(block_indentation);
+                if(!ret1.isEmpty) {
+                  if(added_something) {
+                    System.err.println("Error: Too many dangling statements!")
+                    System.exit(-1)
+                  }
+                  stmts = stmts ++ ret1
+                }
+              }
+            }
+          case _ =>
+        }
+
+        i += 1
+      }
+
+      if(return_to_parent_from == -1) {
+        return List()
+      }
+
+      if(block_indentation == 4) {
+        System.err.println("Error: Dangling statements, which don't belong to a code block: " + (stmts.size - return_to_parent_from) + " statements")
+        System.exit(-1)
+      }
+
+      val (a, b) = stmts.splitAt(return_to_parent_from)
+      stmts = a
+      b
     }
   }
 
@@ -183,7 +257,7 @@ package AST {
     override def to_viper(): String = name
   }
 
-  case class ASTIfStmt(if_guard: ASTExpr, if_block: ASTCodeBlock, if_else_list: List[(ASTExpr, ASTCodeBlock)], else_block: ASTCodeBlock) extends ASTNode {
+  case class ASTIfStmt(if_guard: ASTExpr, var if_block: ASTCodeBlock, var if_else_list: List[(ASTExpr, ASTCodeBlock)], var else_block: ASTCodeBlock) extends ASTNode {
     override def to_viper(): String = {
       //if(x.second != null)
       var res = "if(" + if_guard.to_viper() + ") " + if_block.to_viper()
