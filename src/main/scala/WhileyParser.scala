@@ -27,7 +27,7 @@ class WhileyParser() {
     val Ident: Parser[ASTIdent] = _Letter.rep.string.map(x => {
       if(keyword_list.contains(x)) {
         System.err.println("Keywords may not be used as identifiers. Keyword used: " + x)
-        System.exit(-1)
+        //System.exit(-1)
       }
 
       ASTIdent(x)
