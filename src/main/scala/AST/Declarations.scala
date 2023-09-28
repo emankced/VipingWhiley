@@ -104,6 +104,22 @@ package AST {
     }
   }
 
+  case class ASTMethodDecl(ident: ASTIdent, parametersIn: ASTParameters, parametersOut: ASTParameters, requires: List[ASTExpr], ensures: List[ASTExpr], codeBlock: ASTCodeBlock) extends ASTNode {
+    override def to_viper(): String = {
+      var func = "method " + ident.to_viper() + "(" + parametersIn.to_viper() + ") returns (" + parametersOut.to_viper() + ")"
+
+      for(x <- requires) {
+        func += "\n    requires " + x.to_viper()
+      }
+
+      for (x <- ensures) {
+        func += "\n    ensures " + x.to_viper()
+      }
+
+      func + "\n" + codeBlock.to_viper()
+    }
+  }
+
   case class ASTAssignStmt(lvals: List[ASTIdent], rvals: List[ASTExpr]) extends ASTNode {
     override def to_viper(): String = {
       var left_side = ""

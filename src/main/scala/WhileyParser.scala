@@ -140,10 +140,12 @@ class WhileyParser() {
 
 
     //TODO TypeDecl rule
-    //TODO StaticVarDecl rule
-    val StaticVarDecl = (Type ~ (Indentation *> Ident) ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr.backtrack).?).map((x /*: Either[Parser.Error, (Option[ASTPackageDecl], List[Any])])*/ => ASTStaticVarDecl(x._1._1, x._1._2, x._2)))
+    // StaticVarDecl rule
+    val StaticVarDecl = (Type ~ (Indentation *> Ident) ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr.backtrack).?).map(x => {
+      val ((type_, ident), expr) = x
+      ASTStaticVarDecl(type_, ident, expr)
+    })
 
-    //TODO FunctionDecl rule
     val Variable = (Type ~ (Indentation *> Ident)).map(x => ASTVariable(x._1, x._2))
     val Parameters = (Variable ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Variable).rep0).?.map {
       case Some(x) => ASTParameters(List(x._1) ++ x._2)
@@ -204,13 +206,11 @@ class WhileyParser() {
 
       // If Statement
       val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
-      //val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
         val (if_guard, code_block) = x
         ASTIfStmt(if_guard, code_block)
       })
 
       val ElseIfStmt = (pstring("else") ~ Indentation ~ pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
-      //val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
         val (if_guard, code_block) = x
         ASTElseIfStmt(if_guard, code_block)
       })
@@ -227,8 +227,8 @@ class WhileyParser() {
       })
     }
 
+    // FunctionDecl rule
     val FunctionDecl =  (pstring("function") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock)).map(x => {
-      // use decomposition: val (a, b) = x;
       val ((((ident, parametersIn), parametersOut), ensuresAndRequires), codeBlock) = x
       val ensures = ensuresAndRequires.filter((s, _) => s.equals("ensures")).map((_, node) => node)
       val requires = ensuresAndRequires.filter((s, _) => s.equals("requires")).map((_, node) => node)
@@ -237,12 +237,19 @@ class WhileyParser() {
     })
 
     //TODO MethodDecl rule
+    val MethodDecl =  (pstring("method") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock)).map(x => {
+      val ((((ident, parametersIn), parametersOut), ensuresAndRequires), codeBlock) = x
+      val ensures = ensuresAndRequires.filter((s, _) => s.equals("ensures")).map((_, node) => node)
+      val requires = ensuresAndRequires.filter((s, _) => s.equals("requires")).map((_, node) => node)
 
-    //TODO Modifier rule
+      ASTMethodDecl(ident, parametersIn, parametersOut, ensures, requires, codeBlock)
+    })
+
+    // Modifier rule
     val Modifier = pstringIn(List("public", "private", "native", "export", "final"))
 
-    //TODO SourceFile rule
-    val SourceFile = (LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ ((ImportDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (StaticVarDecl <* LineTerminator)) | (StaticVarDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (FunctionDecl <* LineTerminator)) | (FunctionDecl <* LineTerminator) | LineTerminator.void).rep0).map(x => {
+    // SourceFile rule
+    val SourceFile = (LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ ((ImportDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (StaticVarDecl <* LineTerminator)) | (StaticVarDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (FunctionDecl <* LineTerminator)) | (FunctionDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (MethodDecl <* LineTerminator)) | (MethodDecl <* LineTerminator) | LineTerminator.void).rep0).map(x => {
       var root: List[ASTNode] = List()
 
       x._1 match {
