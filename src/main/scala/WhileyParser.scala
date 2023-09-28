@@ -233,16 +233,20 @@ class WhileyParser() {
       val ensures = ensuresAndRequires.filter((s, _) => s.equals("ensures")).map((_, node) => node)
       val requires = ensuresAndRequires.filter((s, _) => s.equals("requires")).map((_, node) => node)
 
-      ASTFunctionDecl(ident, parametersIn, parametersOut, ensures, requires, codeBlock)
+      ASTFunctionDecl(ident, parametersIn, parametersOut, requires, ensures, codeBlock)
     })
 
-    //TODO MethodDecl rule
-    val MethodDecl =  (pstring("method") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.? ~ pstring("->") ~ Indentation.?) ~ (pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock)).map(x => {
-      val ((((ident, parametersIn), parametersOut), ensuresAndRequires), codeBlock) = x
+    // MethodDecl rule
+    val MethodDecl =  (pstring("method") ~ Indentation *> Ident ~ (Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?) ~ (pstring("->") ~ Indentation.? ~ pchar('(') ~ Indentation.? *> Parameters <* Indentation.? ~ pchar(')') ~ Indentation.?).? ~ (LineTerminator.rep0.with1 *> pstringIn(List("requires", "ensures")) ~ (Indentation *> Expr.backtrack)).rep0 ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> CodeBlock)).map(x => {
+      val ((((ident, parametersIn), optParametersOut), ensuresAndRequires), codeBlock) = x
+      val parametersOut = optParametersOut match {
+        case Some(p) => p
+        case _ => ASTParameters(List())
+      }
       val ensures = ensuresAndRequires.filter((s, _) => s.equals("ensures")).map((_, node) => node)
       val requires = ensuresAndRequires.filter((s, _) => s.equals("requires")).map((_, node) => node)
 
-      ASTMethodDecl(ident, parametersIn, parametersOut, ensures, requires, codeBlock)
+      ASTMethodDecl(ident, parametersIn, parametersOut, requires, ensures, codeBlock)
     })
 
     // Modifier rule
