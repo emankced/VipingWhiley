@@ -153,6 +153,7 @@ package AST {
 
   case class ASTCodeBlock(var stmts: List[(Int, ASTNode)]) extends ASTNode {
     var block_indentation: Int = 0
+    val block_indentation_step = 4
     override def to_viper(): String = {
       fix_block_indentation(0)
 
@@ -161,7 +162,7 @@ package AST {
         res += "\n" + " "*indentation + stmt.to_viper()
       }
 
-      res + "\n}"
+      res + "\n" + " "*(block_indentation - block_indentation_step) + "}"
     }
 
     def fix_block_indentation(scopeDepth: Int): List[(Int, ASTNode)] = {
@@ -171,7 +172,7 @@ package AST {
         return List()
       }
 
-      block_indentation = scopeDepth + 4
+      block_indentation = scopeDepth + block_indentation_step
       var i = 0
       var return_to_parent_from = -1
       while(i < stmts.size) {
@@ -225,7 +226,7 @@ package AST {
         return List()
       }
 
-      if(block_indentation == 4) {
+      if(block_indentation == block_indentation_step) {
         System.err.println("Error: Dangling statements, which don't belong to a code block: " + (stmts.size - return_to_parent_from) + " statements")
         System.exit(-1)
       }
