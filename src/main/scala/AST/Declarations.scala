@@ -165,55 +165,46 @@ package AST {
       res + "\n" + " "*(block_indentation - block_indentation_step) + "}"
     }
 
-    def fix_block_indentation(scopeDepth: Int): List[(Int, ASTNode)] = {
-      System.err.println("Scoping depth: " + scopeDepth)
-
-      if(block_indentation > 0) {
+    def fix_block_indentation(parent_block_indentation: Int): List[(Int, ASTNode)] = {
+      if(parent_block_indentation < block_indentation) {
         return List()
       }
 
-      block_indentation = scopeDepth + block_indentation_step
+      block_indentation = parent_block_indentation + block_indentation_step
+      System.err.println("Scoping depth: " + block_indentation)
+
       var i = 0
-      var return_to_parent_from = -1
       while(i < stmts.size) {
         val (ind, stmt) = stmts(i)
         if(ind > block_indentation) {
           System.err.println("Error: scope depth too high: " + ind + ">" + block_indentation)
           System.exit(-1)
         } else if(ind < block_indentation) {
-          if(return_to_parent_from == -1) {
-            return_to_parent_from = i
-          }
+          val (a, b) = stmts.splitAt(i)
+          stmts = a
+          return b
         }
 
         stmt match {
-          case ASTIfStmt(_, cb0, cb_rest, cb1) => {
-            val ret0 = cb0.fix_block_indentation(block_indentation);
-              if(!ret0.isEmpty) {
-                stmts = stmts ++ ret0
-              } else {
-
-                var added_something = false
-                for((_, cb) <- cb_rest) {
-                  val ret = cb1.fix_block_indentation(block_indentation);
-                  if(!ret.isEmpty) {
-                    if(added_something) {
-                      System.err.println("Error: Too many dangling statements!")
-                      System.exit(-1)
-                    }
-                    stmts = stmts ++ ret
-                    added_something = true
-                  }
-                }
-
-                val ret1 = cb1.fix_block_indentation(block_indentation);
-                if(!ret1.isEmpty) {
-                  if(added_something) {
-                    System.err.println("Error: Too many dangling statements!")
-                    System.exit(-1)
-                  }
-                  stmts = stmts ++ ret1
-                }
+          case ASTIfStmt(_, cb) => {
+            val ret = cb.fix_block_indentation(block_indentation);
+              if(!ret.isEmpty) {
+                val (a, b) = stmts.splitAt(i+1)
+                stmts = a ++ ret ++ b
+              }
+            }
+          case ASTElseIfStmt(_, cb) => {
+            val ret = cb.fix_block_indentation(block_indentation);
+              if(!ret.isEmpty) {
+                val (a, b) = stmts.splitAt(i+1)
+                stmts = a ++ ret ++ b
+              }
+            }
+          case ASTElseStmt(cb) => {
+            val ret = cb.fix_block_indentation(block_indentation);
+              if(!ret.isEmpty) {
+                val (a, b) = stmts.splitAt(i+1)
+                stmts = a ++ ret ++ b
               }
             }
           case _ =>
@@ -222,18 +213,7 @@ package AST {
         i += 1
       }
 
-      if(return_to_parent_from == -1) {
-        return List()
-      }
-
-      if(block_indentation == block_indentation_step) {
-        System.err.println("Error: Dangling statements, which don't belong to a code block: " + (stmts.size - return_to_parent_from) + " statements")
-        System.exit(-1)
-      }
-
-      val (a, b) = stmts.splitAt(return_to_parent_from)
-      stmts = a
-      b
+      return List()
     }
   }
 
@@ -258,18 +238,15 @@ package AST {
     override def to_viper(): String = name
   }
 
-  case class ASTIfStmt(if_guard: ASTExpr, var if_block: ASTCodeBlock, var if_else_list: List[(ASTExpr, ASTCodeBlock)], var else_block: ASTCodeBlock) extends ASTNode {
-    override def to_viper(): String = {
-      //if(x.second != null)
-      var res = "if(" + if_guard.to_viper() + ") " + if_block.to_viper()
-      for((guard, block) <- if_else_list) {
-        res += "\nelse if(" + guard.to_viper() + ") " + block.to_viper()
-      }
-      if(!else_block.stmts.isEmpty) {
-        res += "\nelse " + else_block.to_viper()
-      }
+  case class ASTIfStmt(if_guard: ASTExpr, var code_block: ASTCodeBlock) extends ASTNode {
+    override def to_viper(): String = "if(" + if_guard.to_viper() + ") " + code_block.to_viper()
+  }
 
-      res
-    }
+  case class ASTElseIfStmt(if_guard: ASTExpr, var code_block: ASTCodeBlock) extends ASTNode {
+    override def to_viper(): String = "else if(" + if_guard.to_viper() + ") " + code_block.to_viper()
+  }
+
+  case class ASTElseStmt(var code_block: ASTCodeBlock) extends ASTNode {
+    override def to_viper(): String = "else " + code_block.to_viper()
   }
 }

@@ -202,18 +202,23 @@ class WhileyParser() {
       val ControlStmt = pstringIn(List("break", "continue", "skip")).map(x => ASTControlStmt(x))
 
       // If Statement
-      val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse ~ (LineTerminator ~ sp.rep ~ pstring("else") ~ Indentation ~ pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).backtrack.rep0 ~ (LineTerminator ~ sp.rep ~ pstring("else") ~ Indentation.? ~ pchar(':') *> recurse).backtrack.?)).map(x => {
+      val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
       //val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
-        val (if_guard, ((if_block, if_else_list), opt_else_block)) = x
-
-        val else_block = opt_else_block match {
-          case Some(b) => b
-          case _ => ASTCodeBlock(List())
-        }
-        ASTIfStmt(if_guard, if_block, if_else_list, else_block)
+        val (if_guard, code_block) = x
+        ASTIfStmt(if_guard, code_block)
       })
 
-      val Statement = ControlStmt | ReturnStmt | IfStmt | VarDecl | AssignStmt
+      val ElseIfStmt = (pstring("else") ~ Indentation ~ pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
+      //val IfStmt = (pstring("if") ~ Indentation *> Expr ~ (Indentation.? ~ pchar(':') ~ Indentation.? *> recurse)).map(x => {
+        val (if_guard, code_block) = x
+        ASTElseIfStmt(if_guard, code_block)
+      })
+
+      val ElseStmt = (pstring("else") ~ Indentation.? ~ pchar(':') ~ Indentation.? *> recurse).map(code_block => {
+        ASTElseStmt(code_block)
+      })
+
+      val Statement = ControlStmt | ReturnStmt | IfStmt | ElseIfStmt.backtrack | ElseStmt | VarDecl | AssignStmt
 
       (LineTerminator *> sp.rep ~ Statement).backtrack.rep.map(x => {
         val lines = x.toList.map((indentation, stmt) => (indentation.size, stmt))
