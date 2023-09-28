@@ -117,27 +117,18 @@ class WhileyParser() {
       })
 
       //TODO Missing: CastExpr, LambdaExpr, ArrayExpr, RecordExpr, ReferenceExpr
-      val ArithmeticNegationExpr = (pchar('-') ~ Indentation.? *> recurse).map(expr => ASTUnaryOp("-", expr))
-      val ArithmeticBinaryExpr = ((InvokeExpr.backtrack | TermExpr <* Indentation.?) ~ pstringIn(List("+", "-", "*", "/", "%", "<", "<=", ">=", ">")) ~ (Indentation.? *> recurse)).map(x => {
+      val NegationExpr = (pcharIn('-', '!', '~').string ~ (Indentation.? *> recurse)).map(x => {
+        val (op, expr) = x
+        ASTUnaryOp(op, expr)
+      })
+      val BinaryExpr = ((InvokeExpr.backtrack | TermExpr <* Indentation.?) ~ pstringIn(List("+", "-", "*", "/", "%", "<", "<=", ">=", ">", "==", "!=", "&", "|", "^", "<==>", "==>", "&&", "||")) ~ (Indentation.? *> recurse)).map(x => {
         val ((left, op), right) = x
         ASTBinaryOp(left, op, right)
       })
-      val ArithmeticExpr = (ArithmeticNegationExpr.backtrack | ArithmeticBinaryExpr.backtrack)
 
-      /*
-      val BitwiseExpr
-      val EqualityExpr
-      */
-
-      val LogicalNotExpr = (pchar('!') ~ Indentation.? *> recurse).map(expr => ASTUnaryOp("!", expr))
-      val LogicalBinaryExpr = ((InvokeExpr.backtrack | TermExpr <* Indentation.?) ~ pstringIn(List("<==>", "==>", "&&", "||")) ~ (Indentation.? *> recurse)).map(x => {
-        val ((left, op), right) = x
-        ASTBinaryOp(left, op, right)
-      })
       val LogicalQuantExpr = (pstringIn(List("no", "some", "all")) ~ (Indentation.? ~ pchar('{') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?)).rep0 | (recurse <* Indentation.?) <* pchar('}'))).string.map(x => ASTExprString(x))
-      val LogicalExpr = LogicalNotExpr.backtrack | LogicalBinaryExpr.backtrack | LogicalQuantExpr.backtrack
 
-      ArithmeticExpr.backtrack | LogicalExpr.backtrack | InvokeExpr.backtrack | TermExpr
+      NegationExpr.backtrack | BinaryExpr.backtrack | LogicalQuantExpr.backtrack | InvokeExpr.backtrack | TermExpr
     }
 
     val testExprInput = "5 + 5"
