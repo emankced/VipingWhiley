@@ -250,20 +250,23 @@ class WhileyParser() {
     })
 
     // Modifier rule
-    val Modifier = pstringIn(List("public", "private", "native", "export", "final"))
+    val Modifier = pstringIn(List("public", "private", "native", "export", "final")).map(x => ASTModifier(x))
 
     // SourceFile rule
-    val SourceFile = (LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ ((ImportDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (StaticVarDecl <* LineTerminator)) | (StaticVarDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (FunctionDecl <* LineTerminator)) | (FunctionDecl <* LineTerminator) | ((Modifier <* Indentation).rep ~ (MethodDecl <* LineTerminator)) | (MethodDecl <* LineTerminator) | LineTerminator.void).rep0).map(x => {
+    val SourceFile = (LineTerminator.rep0 *> (PackageDecl <* LineTerminator.rep).? ~ ((ImportDecl <* LineTerminator) | ((Modifier <* Indentation).rep0.with1 ~ (StaticVarDecl <* LineTerminator)).backtrack | ((Modifier <* Indentation).rep0.with1 ~ (FunctionDecl <* LineTerminator)).backtrack | ((Modifier <* Indentation).rep0.with1 ~ (MethodDecl <* LineTerminator)).backtrack | LineTerminator.void | (Indentation ~ LineTerminator).void).rep0).map(x => {
       var root: List[ASTNode] = List()
 
-      x._1 match {
+      val (optPackageDecl, rest) = x
+      optPackageDecl match {
         case Some(x) => root = root ++ List(x)
         case _ =>
       }
 
-      for(node <- x._2) {
+      for(node <- rest) {
+        //ASTImportDecl | (List[ASTModifier], ASTStaticVarDecl) | ((List[ASTModifier], ASTFunctionDecl) | (List[ASTModifier], ASTMethodDecl) | Unit)
         node match {
           case x: ASTNode => root = root ++ List(x)
+          case (l, s): (List[ASTModifier], ASTNode) => root = root ++ l ++ List(s)
           case _ =>
         }
       }

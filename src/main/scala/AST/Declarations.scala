@@ -295,4 +295,8 @@ package AST {
   case class ASTParenthised(expr: ASTExpr) extends ASTExpr {
     override def to_viper(): String = "(" + expr.to_viper() + ")"
   }
+
+  case class ASTModifier(modifier: String) extends ASTNode {
+    override def to_viper(): String = "" // TODO check how modifiers work in viper
+  }
 }
