@@ -144,7 +144,7 @@ package AST {
         }
       }
 
-      left_side  + " = " + right_side + ";"
+      left_side  + " := " + right_side + ";"
     }
   }
 
