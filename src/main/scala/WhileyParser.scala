@@ -168,7 +168,7 @@ class WhileyParser() {
         case Right(v) =>
       }
 
-      val VarDecl = ((Type <* Indentation) ~ Ident ~ (Indentation.?.with1 ~ pchar(',') *> Type ~ (Indentation *> Ident)).rep0 ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0).?).map(x => {
+      val VarDecl = ((Type <* Indentation) ~ Ident ~ (Indentation.?.with1 ~ pchar(',') *> Type ~ (Indentation *> Ident)).backtrack.rep0 ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).backtrack.rep0).?).map(x => {
         val (((type0, ident0), type_ident_rest), option_expr0_expr_rest) = x
 
         val type_ident = List((type0, ident0))++ type_ident_rest
