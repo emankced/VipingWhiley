@@ -263,7 +263,6 @@ class WhileyParser() {
       }
 
       for(node <- rest) {
-        //ASTImportDecl | (List[ASTModifier], ASTStaticVarDecl) | ((List[ASTModifier], ASTFunctionDecl) | (List[ASTModifier], ASTMethodDecl) | Unit)
         node match {
           case x: ASTNode => root = root ++ List(x)
           case (l, s): (List[ASTModifier], ASTNode) => root = root ++ l ++ List(s)
