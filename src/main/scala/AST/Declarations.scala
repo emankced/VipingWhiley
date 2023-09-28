@@ -171,7 +171,6 @@ package AST {
       }
 
       block_indentation = parent_block_indentation + block_indentation_step
-      System.err.println("Scoping depth: " + block_indentation)
 
       var i = 0
       while(i < stmts.size) {
@@ -180,11 +179,13 @@ package AST {
           System.err.println("Error: scope depth too high: " + ind + ">" + block_indentation)
           System.exit(-1)
         } else if(ind < block_indentation) {
+          // if the indentation is smaller than expected, the code belongs to the parent code block
           val (a, b) = stmts.splitAt(i)
           stmts = a
           return b
         }
 
+        // Handle code blocks in deeper nestings
         stmt match {
           case ASTIfStmt(_, cb) => {
             val ret = cb.fix_block_indentation(block_indentation);
