@@ -1,5 +1,5 @@
 package AST {
-  case class ASTIdent(name: String) extends ASTNode {
+  case class ASTIdent(name: String) extends ASTExpr {
     override def to_viper(): String = name
   }
 
@@ -16,7 +16,7 @@ package AST {
   }
 
   // TODO handle actual expressions instead of accepting a string blindly
-  case class ASTExpr(expr: String) extends ASTNode {
+  case class ASTExprString(expr: String) extends ASTExpr {
     override def to_viper(): String = expr
   }
 
@@ -249,5 +249,34 @@ package AST {
 
   case class ASTElseStmt(var code_block: ASTCodeBlock) extends ASTNode {
     override def to_viper(): String = "else " + code_block.to_viper()
+  }
+
+  case class ASTInvokeExpr(name: ASTIdent, args: List[ASTExpr]) extends ASTExpr {
+    override def to_viper(): String = {
+      var res = name.to_viper() + "("
+      var first = true
+      for(a <- args) {
+        if(first) {
+          res += a.to_viper()
+          first = false
+        } else {
+          res += ", " + a.to_viper()
+        }
+      }
+
+      res + ")"
+    }
+  }
+
+  case class ASTUnaryOp(op: String, expr: ASTExpr) extends ASTExpr {
+    override def to_viper(): String = "-" + expr.to_viper()
+  }
+
+  case class ASTBinaryOp(expr0: ASTExpr, op: String, expr1: ASTExpr) extends ASTExpr {
+    override def to_viper(): String = expr0.to_viper() + " " + op + " " + expr1.to_viper()
+  }
+
+  case class ASTParenthised(expr: ASTExpr) extends ASTExpr {
+    override def to_viper(): String = "(" + expr.to_viper() + ")"
   }
 }

@@ -70,7 +70,7 @@ class WhileyParser() {
     val StringEscape: Parser[String] = (pcharIn('\\') ~ pcharIn('\\', 't', 'n', '"')).string
     val StringLiteral: Parser[ASTStringLiteral] = (pchar('"') *> (StringCharacter | StringEscape).rep0.string <* pchar('"')).map(x => ASTStringLiteral(x))
 
-    val Literals: Parser[ASTNode] = NullLiteral | BoolLiteral | BinaryLiteral | HexLiteral | IntLiteral | CharacterLiteral | StringLiteral
+    val Literals: Parser[ASTExpr] = NullLiteral | BoolLiteral | BinaryLiteral | HexLiteral | IntLiteral | CharacterLiteral | StringLiteral
 
     // Source files
     // PackageDecl rule
@@ -104,30 +104,40 @@ class WhileyParser() {
 
     // Expr rule
     val Expr: Parser[ASTExpr] = Parser.recursive[ASTExpr] { recurse =>
-      val TermExpr = Ident | Literals | ((pcharIn('(') <* Indentation.?) ~ recurse ~ (Indentation.? *> pcharIn(')')).backtrack)
+      val TermExpr = Ident | Literals | (pchar('(') ~ Indentation.? *> recurse <* Indentation.? ~ pchar(')')).backtrack.map(expr => ASTParenthised(expr))
+
+      val InvokeExpr = ((Ident <* Indentation.?) ~ (pchar('(') ~ Indentation.? *> ((recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> recurse <* Indentation.?).rep0).? <* pchar(')'))).map(x => {
+        val (name, arguments) = x
+        val args = arguments match {
+          case Some(a0, a_rest) => List(a0) ++ a_rest
+          case _ => List()
+        }
+
+        ASTInvokeExpr(name, args)
+      })
 
       //TODO Missing: CastExpr, LambdaExpr, ArrayExpr, RecordExpr, ReferenceExpr
-      val ArithmeticNegationExpr = pchar('-') <* Indentation.? *> recurse
-      val ArithmeticRelationalExpr = TermExpr <* Indentation.? *> pstringIn(List("<", "<=", ">=", ">")) <* Indentation.? *> recurse
-      val ArithmeticAdditiveExpr = TermExpr <* Indentation.? *> pcharIn('+', '-') <* Indentation.? *> recurse
-      val ArithmeticMultiplicativeExpr = TermExpr <* Indentation.? *>  pcharIn('*', '/', '%') <* Indentation.? *> recurse
-      val ArithmeticExpr = (ArithmeticNegationExpr.backtrack | ArithmeticRelationalExpr.backtrack | ArithmeticAdditiveExpr.backtrack | ArithmeticMultiplicativeExpr.backtrack).withContext("Expected Arithmetic Expression!")
+      val ArithmeticNegationExpr = (pchar('-') ~ Indentation.? *> recurse).map(expr => ASTUnaryOp("-", expr))
+      val ArithmeticBinaryExpr = ((InvokeExpr.backtrack | TermExpr <* Indentation.?) ~ pstringIn(List("+", "-", "*", "/", "%", "<", "<=", ">=", ">")) ~ (Indentation.? *> recurse)).map(x => {
+        val ((left, op), right) = x
+        ASTBinaryOp(left, op, right)
+      })
+      val ArithmeticExpr = (ArithmeticNegationExpr.backtrack | ArithmeticBinaryExpr.backtrack)
 
       /*
       val BitwiseExpr
       val EqualityExpr
-      val InvokeExpr
       */
 
-      val LogicalNotExpr = pchar('!') ~ Indentation.? *> recurse
-      val LogicalBinaryExpr = TermExpr ~ (Indentation.? *> pstringIn(List("<==>", "==>", "&&", "||")) <* Indentation.?) ~ recurse
-      val LogicalQuantExpr = pstringIn(List("no", "some", "all")) ~ (Indentation.? ~ pchar('{') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?)).rep0 | (recurse <* Indentation.?) <* pchar('}'))
+      val LogicalNotExpr = (pchar('!') ~ Indentation.? *> recurse).map(expr => ASTUnaryOp("!", expr))
+      val LogicalBinaryExpr = ((InvokeExpr.backtrack | TermExpr <* Indentation.?) ~ pstringIn(List("<==>", "==>", "&&", "||")) ~ (Indentation.? *> recurse)).map(x => {
+        val ((left, op), right) = x
+        ASTBinaryOp(left, op, right)
+      })
+      val LogicalQuantExpr = (pstringIn(List("no", "some", "all")) ~ (Indentation.? ~ pchar('{') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?)).rep0 | (recurse <* Indentation.?) <* pchar('}'))).string.map(x => ASTExprString(x))
       val LogicalExpr = LogicalNotExpr.backtrack | LogicalBinaryExpr.backtrack | LogicalQuantExpr.backtrack
 
-
-      //TODO properly parse expressions
-      // old idea TRY LOOKAHEAD. That wasn't necessary :)
-      (ArithmeticExpr.backtrack | LogicalExpr.backtrack | TermExpr).string.map(x => ASTExpr(x))
+      ArithmeticExpr.backtrack | LogicalExpr.backtrack | InvokeExpr.backtrack | TermExpr
     }
 
     val testExprInput = "5 + 5"
