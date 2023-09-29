@@ -264,7 +264,7 @@ package AST {
   }
 
   case class ASTElseIfStmt(if_guard: ASTExpr, var code_block: ASTCodeBlock) extends ASTNode {
-    override def to_viper(adapt_for_function: Boolean = false): String = "else if(" + if_guard.to_viper(adapt_for_function) + ") " + code_block.to_viper(adapt_for_function)
+    override def to_viper(adapt_for_function: Boolean = false): String = "else { if(" + if_guard.to_viper(adapt_for_function) + ") " + code_block.to_viper(adapt_for_function) + " }"
   }
 
   case class ASTElseStmt(var code_block: ASTCodeBlock) extends ASTNode {
