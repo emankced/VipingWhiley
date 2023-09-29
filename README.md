@@ -73,6 +73,9 @@ Since a Viper functions needs a direct return value, if-else cannot be used, but
 So the if-else statements are being handled specially inside function code blocks.
 
 ## Limitations & Missing Features
+The parser supports indentation in steps of 4 spaces.
+Tabs or other step sizes are not supported.
+
 Unfortunately, empty statements in code blocks cannot be parsed right now, so empty lines must not be present in code blocks in input files.
 
 Viper functions do not have a named return value, but Whiley does.
