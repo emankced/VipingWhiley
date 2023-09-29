@@ -5,7 +5,7 @@
 
 @main
 def main(sourceFile: String): Unit = {
-  println("VipingWhiley")
+  println("// VipingWhiley")
   val sourceCode = scala.io.Source.fromFile(sourceFile).mkString + "\n"
   val wp = WhileyParser();
   wp.parse(sourceCode)
