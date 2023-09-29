@@ -11,11 +11,8 @@ public export method main():
     io::println(f)
 
 function fib(int n) -> (int r)
-// input must be positive
 requires n >= 0
-// return value can not be smaller than input
 ensures r >= n
-// return value is bigger than the input if n >= 2
 ensures n >= 2 ==> r > n:
     if n < 2:
         return n
