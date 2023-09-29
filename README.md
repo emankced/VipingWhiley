@@ -11,7 +11,7 @@ The programming language for the code base is [Scala](https://scala-lang.org/) a
 ## Build & Run
 Since Scala is used, `sbt` is the build tool.
 There is an interactive mode, where you can run the program using `run file.whiley` in the interactive shell.
-The JAR can be build with `publishLocal`.
+The JAR can be build with `assembly`.
 
 Of course you can run the program without the interactive shell:
 ```
@@ -20,7 +20,7 @@ sbt "run file.whiley"
 
 And you can build the JAR file with, which is being stored at `target/`:
 ```
-sbt publishLocal
+sbt assembly
 ```
 
 ### Usage
@@ -29,10 +29,10 @@ The generated Viper code is printed to `stdout`, while errors and warnings are p
 
 ```
 # Generate and print Viper code
-java -jar vipingwhiley_3.jar file.whiley
+java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley
 
 # Save Viper code to file
-java -jar vipingwhiley_3.jar file.whiley > file.vpr
+java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley > file.vpr
 ```
 
 ## Project Constraints
