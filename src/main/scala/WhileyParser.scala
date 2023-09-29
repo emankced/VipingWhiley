@@ -219,9 +219,11 @@ class WhileyParser() {
         ASTElseStmt(code_block)
       })
 
-      val Statement = ControlStmt | ReturnStmt | IfStmt | ElseIfStmt.backtrack | ElseStmt | VarDecl | AssignStmt
+      val PrintStub = (pstringIn(List("io::println(", "io::print(")) ~ (StringLiteral | Ident).? ~ pcharIn(')')).string.map(x => ASTPrintStub(x))
 
-      (LineTerminator *> sp.rep ~ Statement).backtrack.rep.map(x => {
+      val Statement = PrintStub | ControlStmt | ReturnStmt | IfStmt | ElseIfStmt.backtrack | ElseStmt | VarDecl | AssignStmt
+
+      (LineTerminator *> sp.rep.string ~ Statement).backtrack.rep.map(x => {
         val lines = x.toList.map((indentation, stmt) => (indentation.size, stmt))
         ASTCodeBlock(lines)
       })

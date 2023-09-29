@@ -303,4 +303,8 @@ package AST {
   case class ASTModifier(modifier: String) extends ASTNode {
     override def to_viper(adapt_for_function: Boolean = false): String = "" // TODO check how modifiers work in viper
   }
+
+  case class ASTPrintStub(print_cmd: String) extends ASTNode {
+    override def to_viper(adapt_for_function: Boolean = false): String = "// " + print_cmd
+  }
 }
