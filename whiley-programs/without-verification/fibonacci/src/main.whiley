@@ -10,7 +10,7 @@ public export method main():
     io::print(") = ")
     io::println(f)
 
-function fib(int n) -> (int r):
+function fib(int n) -> (int result):
     if n < 2:
         return n
     else:
