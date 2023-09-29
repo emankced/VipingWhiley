@@ -35,6 +35,12 @@ java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley
 java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley > file.vpr
 ```
 
+## Whiley Example Programs
+In the folders `whiley-programs/with-verification` and `whiley-programs/without-verification` are example programs located.
+Respectively with or without verification features.
+
+VipingWhiley is able to process all of those examples correctly.
+
 ## Project Constraints
 At the beginning of the project, a few constraints have been defined, to specify a feasable scope for this small university project.
 Basically, the most important language features have been selected to be implemented and the more advanced features are outside of the scope.
