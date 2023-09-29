@@ -153,13 +153,20 @@ package AST {
       var decls = ""
       if(rvals.size > 0) {
         for(((t, i), e) <- lvals.zip(rvals)) {
-          // var i: Int := 0;
-          decls += "var " + i.to_viper(adapt_for_function) + ": " + t.to_viper(adapt_for_function) + " := " + e.to_viper(adapt_for_function) + "; "
+          if(adapt_for_function) {
+            decls += "let " + i.to_viper(adapt_for_function) + " == (" + e.to_viper(adapt_for_function) + ") in "
+          } else {
+            decls += "var " + i.to_viper(adapt_for_function) + ": " + t.to_viper(adapt_for_function) + " := " + e.to_viper(adapt_for_function) + "; "
+          }
         }
       } else {
         for((t, i) <- lvals) {
-          // var i: Int;
-          decls += "var " + i.to_viper(adapt_for_function) + ": " + t.to_viper(adapt_for_function) + "; "
+          if(adapt_for_function) {
+            System.err.println("Error: Forward declaration is not possible in functions!")
+            System.exit(-1)
+          } else {
+            decls += "var " + i.to_viper(adapt_for_function) + ": " + t.to_viper(adapt_for_function) + "; "
+          }
         }
       }
 
