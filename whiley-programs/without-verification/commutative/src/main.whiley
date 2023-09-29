@@ -2,7 +2,7 @@
 import std::io
 
 public export method main():
-    io::println("Multiplication")
+    io::println("Commutative")
     int x = 10
     int y = 3
     int z = -5
