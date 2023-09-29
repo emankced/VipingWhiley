@@ -181,8 +181,56 @@ package AST {
       fix_block_indentation(0)
 
       var res = "{"
-      for((indentation, stmt) <- stmts) {
-        res += "\n" + " "*indentation + stmt.to_viper(adapt_for_function)
+      var i = 0
+      while(i < stmts.size) {
+        val (indentation, stmt) = stmts(i)
+        if(adapt_for_function) {
+          stmt match {
+            case ASTIfStmt(if_guard, code_block) => {
+              var cb = code_block.to_viper(adapt_for_function)
+              cb = cb.splitAt(cb.size-1)._1
+              cb = cb.splitAt(1)._2
+
+              res += "\n" + " "*indentation + "(" + if_guard.to_viper(adapt_for_function) + " ? " + cb + " : "
+              var closing_brackets_count = 1
+
+              var break = false
+              i = i+1
+              while(!break && i < stmts.size) {
+                val (next_indentation, next_stmt) = stmts(i)
+                next_stmt match {
+                  case ASTElseIfStmt(if_guard, code_block) => {
+                    cb = code_block.to_viper(adapt_for_function)
+                    cb = cb.splitAt(cb.size-1)._1
+                    cb = cb.splitAt(1)._2
+                    res += "(" + if_guard.to_viper(adapt_for_function) + " ? " + cb + " : "
+                    closing_brackets_count += 1
+                  }
+                  case ASTElseStmt(code_block) => {
+                    cb = code_block.to_viper(adapt_for_function)
+                    cb = cb.splitAt(cb.size-1)._1
+                    cb = cb.splitAt(1)._2
+                    res += cb
+                    break = true
+                  }
+                  case r: ASTReturnStmt => {
+                    res += r.to_viper(adapt_for_function)
+                    break = true
+                  }
+                  case n: ASTNode => res += n.to_viper()
+                  case _ => break = true
+                }
+                i += 1
+              }
+
+              res += ")"*closing_brackets_count
+            }
+            case _ => res += "\n" + " "*indentation + stmt.to_viper(adapt_for_function)
+          }
+        } else {
+          res += "\n" + " "*indentation + stmt.to_viper(adapt_for_function)
+        }
+        i += 1
       }
 
       res + "\n" + " "*(block_indentation - block_indentation_step) + "}"
