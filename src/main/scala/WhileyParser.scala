@@ -116,17 +116,17 @@ class WhileyParser() {
         ASTInvokeExpr(name, args)
       })
 
+      val LogicalQuantExpr = (pstringIn(List("no", "some", "all")) ~ (Indentation.? ~ pchar('{') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?)).rep0 | (recurse <* Indentation.?) <* pchar('}'))).string.map(x => ASTExprString(x))
+
       //TODO Missing: CastExpr, LambdaExpr, ArrayExpr, RecordExpr, ReferenceExpr
       val NegationExpr = (pcharIn('-', '!', '~').string ~ (Indentation.? *> recurse)).map(x => {
         val (op, expr) = x
         ASTUnaryOp(op, expr)
       })
-      val BinaryExpr = (((InvokeExpr.backtrack | TermExpr) <* Indentation.?) ~ pstringIn(List("+", "-", "*", "/", "%", "<", "<=", ">=", ">", "==", "!=", "&", "|", "^", "<==>", "==>", "&&", "||")) ~ (Indentation.? *> recurse)).map(x => {
+      val BinaryExpr = (((InvokeExpr.backtrack | NegationExpr.backtrack | LogicalQuantExpr.backtrack | TermExpr) <* Indentation.?) ~ pstringIn(List("+", "-", "*", "/", "%", "<", "<=", ">=", ">", "==", "!=", "&", "|", "^", "<==>", "==>", "&&", "||")) ~ (Indentation.? *> recurse)).map(x => {
         val ((left, op), right) = x
         ASTBinaryOp(left, op, right)
       })
-
-      val LogicalQuantExpr = (pstringIn(List("no", "some", "all")) ~ (Indentation.? ~ pchar('{') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> (Ident <* Indentation ~ pstring("in") ~ Indentation) ~ (recurse <* Indentation.?)).rep0 | (recurse <* Indentation.?) <* pchar('}'))).string.map(x => ASTExprString(x))
 
       NegationExpr.backtrack | BinaryExpr.backtrack | LogicalQuantExpr.backtrack | InvokeExpr.backtrack | TermExpr
     }
