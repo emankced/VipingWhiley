@@ -1,8 +1,4 @@
 package AST {
-  case class ASTIdent(name: String) extends ASTExpr {
-    override def to_viper(adapt_for_function: Boolean = false): String = name
-  }
-
   case class ASTType(typeName: String) extends ASTNode {
     override def to_viper(adapt_for_function: Boolean = false): String = {
       if(typeName.equals("int")) {
@@ -13,11 +9,6 @@ package AST {
         typeName
       }
     }
-  }
-
-  // TODO handle actual expressions instead of accepting a string blindly
-  case class ASTExprString(expr: String) extends ASTExpr {
-    override def to_viper(adapt_for_function: Boolean = false): String = expr
   }
 
   case class ASTVariable(varType: ASTType, ident: ASTIdent) extends ASTNode {
@@ -324,35 +315,6 @@ package AST {
 
   case class ASTElseStmt(var code_block: ASTCodeBlock) extends ASTNode {
     override def to_viper(adapt_for_function: Boolean = false): String = "else " + code_block.to_viper(adapt_for_function)
-  }
-
-  case class ASTInvokeExpr(name: ASTIdent, args: List[ASTExpr]) extends ASTExpr {
-    override def to_viper(adapt_for_function: Boolean = false): String = {
-      var res = name.to_viper(adapt_for_function) + "("
-      var first = true
-      for(a <- args) {
-        if(first) {
-          res += a.to_viper(adapt_for_function)
-          first = false
-        } else {
-          res += ", " + a.to_viper(adapt_for_function)
-        }
-      }
-
-      res + ")"
-    }
-  }
-
-  case class ASTUnaryOp(op: String, expr: ASTExpr) extends ASTExpr {
-    override def to_viper(adapt_for_function: Boolean = false): String = "-" + expr.to_viper(adapt_for_function)
-  }
-
-  case class ASTBinaryOp(expr0: ASTExpr, op: String, expr1: ASTExpr) extends ASTExpr {
-    override def to_viper(adapt_for_function: Boolean = false): String = expr0.to_viper(adapt_for_function) + " " + op + " " + expr1.to_viper(adapt_for_function)
-  }
-
-  case class ASTParenthised(expr: ASTExpr) extends ASTExpr {
-    override def to_viper(adapt_for_function: Boolean = false): String = "(" + expr.to_viper(adapt_for_function) + ")"
   }
 
   case class ASTModifier(modifier: String) extends ASTNode {
