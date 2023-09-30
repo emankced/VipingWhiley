@@ -21,7 +21,8 @@ requires a != 0
 requires b != 0
 requires c != 0
 ensures result == a * b * c
-ensures (a * b) * c == a * (b * c):
+ensures (a * b) * c == a * (b * c)
+ensures (a * b) * c <==> a * (b * c):
     return mul(a, mul(b,c))
 
 function mul(int a, int b) -> (int result)
