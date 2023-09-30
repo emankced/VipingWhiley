@@ -121,7 +121,7 @@ class WhileyParser() {
         val (op, expr) = x
         ASTUnaryOp(op, expr)
       })
-      val BinaryExpr = ((InvokeExpr.backtrack | TermExpr <* Indentation.?) ~ pstringIn(List("+", "-", "*", "/", "%", "<", "<=", ">=", ">", "==", "!=", "&", "|", "^", "<==>", "==>", "&&", "||")) ~ (Indentation.? *> recurse)).map(x => {
+      val BinaryExpr = (((InvokeExpr.backtrack | TermExpr) <* Indentation.?) ~ pstringIn(List("+", "-", "*", "/", "%", "<", "<=", ">=", ">", "==", "!=", "&", "|", "^", "<==>", "==>", "&&", "||")) ~ (Indentation.? *> recurse)).map(x => {
         val ((left, op), right) = x
         ASTBinaryOp(left, op, right)
       })
