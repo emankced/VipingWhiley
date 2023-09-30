@@ -12,10 +12,7 @@ function lotto(int n, int k) -> (int result)
 requires n > 0 && k > 0
 requires n > k
 ensures result > n - k:
-    int a = fac(n)
-    int b = fac(k)
-    int c = fac(n-k)
-    return a / (b*c)
+    return fac(n) / (fac(k) * fac(n-k))
 
 function fac(int n) -> (int result)
 requires n >= 1
