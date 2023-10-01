@@ -7,5 +7,5 @@ lazy val root = (project in file("."))
     name := "VipingWhiley"
   )
 
-//libraryDependencies += "org.typelevel" %% "cats-core" % "2.9.0"
 libraryDependencies += "org.typelevel" %% "cats-parse" % "0.3.9"
+libraryDependencies += "org.scalatest" %% "scalatest-funsuite" % "3.2.17" % "test"
