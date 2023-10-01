@@ -231,7 +231,7 @@ object WhileyParser {
     for(node <- rest) {
       node match {
         case x: ASTNode => root = root ++ List(x)
-        case (l, s): (List[ASTModifier], ASTNode) => root = root ++ l ++ List(s)
+        case (l: List[ASTModifier], s: ASTNode) => root = root ++ l ++ List(s)
         case _ =>
       }
     }

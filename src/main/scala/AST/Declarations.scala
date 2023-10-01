@@ -149,7 +149,6 @@ package AST {
                     break = true
                   }
                   case n: ASTNode => res += n.to_viper()
-                  case _ => break = true
                 }
                 i += 1
               }
