@@ -2,6 +2,7 @@ import cats.parse.Rfc5234.{alpha, char, cr, crlf, digit, htab, lf, sp}
 import cats.parse.{Parser, Parser0}
 import cats.parse.Parser.{not, string0, char as pchar, charIn as pcharIn, string as pstring, stringIn as pstringIn}
 import cats.implicits.toShow
+import cats.Defer
 import AST.*
 
 class WhileyParser() {
@@ -23,13 +24,8 @@ class WhileyParser() {
   //TODO comment parser
 
   // Identifiers
-  //TODO don't parse keywords instead of printing warnings
-  val Ident: Parser[ASTIdent] = /* !pstringIn(keywords_list) | */ _Letter.rep.string.map(x => {
-    if(keyword_list.contains(x)) {
-      System.err.println("Keywords may not be used as identifiers. Keyword used: " + x)
-      //System.exit(-1)
-    }
-
+  // does not parse keywords :)
+  val Ident: Parser0[ASTIdent] = !pstringIn(keyword_list) *> _Letter.rep.string.map(x => {
     ASTIdent(x)
   })
 
@@ -66,12 +62,12 @@ class WhileyParser() {
 
   // Source files
   // PackageDecl rule
-  val PackageDecl: Parser[ASTPackageDecl] = (pstring("package") ~ Indentation) *> (Ident ~ (pcharIn('.') ~ Ident).rep0).string.map(x => ASTPackageDecl(x))
+  val PackageDecl: Parser[ASTPackageDecl] = pstring("package") ~ Indentation *> (Ident ~ (pcharIn('.') *> Ident).rep0).string.map(x => ASTPackageDecl(x))
 
-  //TODO ImportDecl rule
+  // ImportDecl rule
   val FromSpec = (pcharIn('*') | Ident ~ (pchar(',') *> Indentation.? *> Ident).rep0) <* Indentation *> pstringIn(List("from")) <* Indentation
   val WithSpec = pstringIn(List("with")) <* Indentation *> (pcharIn('*') | (Ident ~ (pchar(',') *> Ident).rep0))
-  val ImportDecl: Parser[ASTImportDecl] = (pstringIn(List("import")) <* Indentation *> FromSpec.backtrack.? ~ Ident ~ (pstringIn(List("::")) ~ (Ident | pcharIn('*').string)).rep0 ~ (Indentation *> WithSpec).?).string.map(x => ASTImportDecl(x))
+  val ImportDecl: Parser[ASTImportDecl] = pstring("import") ~ Indentation *> (FromSpec.backtrack.? ~ Ident ~ (pstringIn(List("::")) ~ (Ident | pcharIn('*').string)).rep0 ~ (Indentation *> WithSpec).?).string.map(x => ASTImportDecl(x))
 
   // Type rules
   // For now only PrimitiveType is implemented. Missing: RecordType, ReferenceType, NominalType, ArrayType, FunctionType, MethodType
@@ -95,7 +91,8 @@ class WhileyParser() {
   }
 
   // Expr rule
-  val Expr: Parser[ASTExpr] = Parser.recursive[ASTExpr] { recurse =>
+  // This rule had to be changed to Defer, because of Ident. This is related to blacklisting keywords.
+  val Expr: Parser0[ASTExpr] = Defer[Parser0].fix[ASTExpr] { recurse =>
     val TermExpr = Literals | (pchar('(') ~ Indentation.? *> recurse <* Indentation.? ~ pchar(')')).backtrack.map(expr => ASTParanthesis(expr)) | Ident
 
     val InvokeExpr = ((Ident <* Indentation.?) ~ (pchar('(') ~ Indentation.? *> ((recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> recurse <* Indentation.?).rep0).? <* pchar(')'))).map(x => {

@@ -49,11 +49,11 @@ class TestWhileyParser extends AnyFunSuite {
   }
 
   test("PackageDecl -> ASTPackageDecl") {
-    my_assert(wp.PackageDecl.parseAll("package this.is.a.test"), ASTPackageDecl("this.is.a.test"))
+    my_assert(wp.PackageDecl.parseAll("package lets.test.it"), ASTPackageDecl("lets.test.it"))
   }
 
   test("ImportDecl -> ASTImportDecl") {
-    my_assert(wp.ImportDecl.parseAll("import this::is::a::test"), ASTImportDecl("import this::is::a::test"))
+    my_assert(wp.ImportDecl.parseAll("import lets::test::it"), ASTImportDecl("lets::test::it"))
   }
 
   test("Type -> ASTType - 1") {

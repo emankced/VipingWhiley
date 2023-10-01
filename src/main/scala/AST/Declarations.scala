@@ -55,12 +55,12 @@ package AST {
     }
   }
 
-  case class ASTPackageDecl(name: String) extends ASTNode {
-    override def to_viper(adapt_for_function: Boolean = false): String = "// package " + name
+  case class ASTPackageDecl(package_string: String) extends ASTNode {
+    override def to_viper(adapt_for_function: Boolean = false): String = "// package " + package_string
   }
 
   case class ASTImportDecl(import_string: String) extends ASTNode {
-    override def to_viper(adapt_for_function: Boolean = false): String = "// " + import_string
+    override def to_viper(adapt_for_function: Boolean = false): String = "// import" + import_string
   }
 
   case class ASTStaticVarDecl(varType: ASTType, ident: ASTIdent, value: Option[ASTExpr]) extends ASTNode {
