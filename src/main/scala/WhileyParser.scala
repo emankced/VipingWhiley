@@ -32,14 +32,6 @@ class WhileyParser() {
     ASTIdent(x)
   })
 
-  /*
-  val Keyword: Parser[String] = pstringIn(keyword_list)
-
-  val keyword_identifier_list = List("constant")
-  // Missing: from, type
-  val KeywordIdentifier: Parser[String] = pstringIn(keyword_identifier_list)
-  */
-
   // Literals
   val NullLiteral: Parser[ASTNullLiteral] = pstringIn(List("null")).map(x => ASTNullLiteral())
   val BoolLiteral: Parser[ASTBoolLiteral] = pstringIn(List("true", "false")).string.map(x => ASTBoolLiteral(x.equals("true")))
@@ -80,15 +72,9 @@ class WhileyParser() {
   val WithSpec = pstringIn(List("with")) <* Indentation *> (pcharIn('*') | (Ident ~ (pchar(',') *> Ident).rep0))
   val ImportDecl: Parser[ASTImportDecl] = (pstringIn(List("import")) <* Indentation *> FromSpec.backtrack.? ~ Ident ~ (pstringIn(List("::")) ~ (Ident | pcharIn('*').string)).rep0 ~ (Indentation *> WithSpec).?).string.map(x => ASTImportDecl(x))
 
-  //val x = ImportDecl.parse("import yes")
-  //val x = ImportDecl.parse("import * from a::pkg::File")
-  //val x = ImportDecl.parseAll("import a::pkg::File with Oii")
-
-  //TODO Expr rules
-
   // Type rules
-  //TODO: For now only PrimitiveType is implemented. Missing: RecordType, ReferenceType, NominalType, ArrayType, FunctionType, MethodType
-  //TODO RealType is not properly specified in documentation...
+  // For now only PrimitiveType is implemented. Missing: RecordType, ReferenceType, NominalType, ArrayType, FunctionType, MethodType
+  // RealType is not properly specified in documentation...
 
   //TODO RealType missing!
   val PrimitiveType = pstringIn(List("null", "bool", "byte", "int", "void"))
@@ -103,7 +89,7 @@ class WhileyParser() {
 
   // Expr rule
   val Expr: Parser[ASTExpr] = Parser.recursive[ASTExpr] { recurse =>
-    val TermExpr = Ident | Literals | (pchar('(') ~ Indentation.? *> recurse <* Indentation.? ~ pchar(')')).backtrack.map(expr => ASTParenthised(expr))
+    val TermExpr = Ident | Literals | (pchar('(') ~ Indentation.? *> recurse <* Indentation.? ~ pchar(')')).backtrack.map(expr => ASTParanthesis(expr))
 
     val InvokeExpr = ((Ident <* Indentation.?) ~ (pchar('(') ~ Indentation.? *> ((recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> recurse <* Indentation.?).rep0).? <* pchar(')'))).map(x => {
       val (name, arguments) = x

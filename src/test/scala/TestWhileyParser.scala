@@ -31,4 +31,24 @@ class TestWhileyParser extends AnyFunSuite {
   test("Ident -> Error - 2") {
     my_assert_neg(wp.Ident.parseAll("test Ident"))
   }
+
+  test("Literals -> ASTIntLiteral") {
+    my_assert(wp.Literals.parseAll("1337"), ASTIntLiteral(1337))
+  }
+
+  test("Literals -> ASTHexLiteral") {
+    my_assert(wp.Literals.parseAll("0xdead69"), ASTHexLiteral(0xdead69))
+  }
+
+  test("Literals -> ASTBoolLiteral") {
+    my_assert(wp.Literals.parseAll("true"), ASTBoolLiteral(true))
+  }
+
+  test("PackageDecl -> ASTPackageDecl") {
+    my_assert(wp.PackageDecl.parseAll("package this.is.a.test"), ASTPackageDecl("this.is.a.test"))
+  }
+
+  test("ImportDecl -> ASTImportDecl") {
+    my_assert(wp.ImportDecl.parseAll("import this::is::a::test"), ASTImportDecl("import this::is::a::test"))
+  }
 }

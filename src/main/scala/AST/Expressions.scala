@@ -61,7 +61,7 @@ package AST {
     override def to_viper(adapt_for_function: Boolean = false): String = expr0.to_viper(adapt_for_function) + " " + op + " " + expr1.to_viper(adapt_for_function)
   }
 
-  case class ASTParenthised(expr: ASTExpr) extends ASTExpr {
+  case class ASTParanthesis(expr: ASTExpr) extends ASTExpr {
     override def to_viper(adapt_for_function: Boolean = false): String = "(" + expr.to_viper(adapt_for_function) + ")"
   }
 }
