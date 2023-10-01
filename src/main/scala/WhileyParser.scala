@@ -122,15 +122,8 @@ class WhileyParser() {
     NegationExpr.backtrack | BinaryExpr.backtrack | LogicalQuantExpr.backtrack | InvokeExpr.backtrack | TermExpr
   }
 
-  val testExprInput = "5 + 5"
-  val testExpr = Expr.parseAll(testExprInput)
-  testExpr match {
-    case Left(error) => { System.err.println(error.show); System.exit(-2) }
-    case Right(v) =>
-  }
-
-
   //TODO TypeDecl rule
+
   // StaticVarDecl rule
   val StaticVarDecl = (Type ~ (Indentation *> Ident) ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr.backtrack).?).map(x => {
     val ((type_, ident), expr) = x

@@ -20,8 +20,12 @@ class TestWhileyParser extends AnyFunSuite {
     })
   }
 
-  test("Ident -> ASTIdent") {
+  test("Ident -> ASTIdent - 1") {
     my_assert(wp.Ident.parseAll("test_Ident"), ASTIdent("test_Ident"))
+  }
+
+  test("Ident -> ASTIdent - 2") {
+    my_assert_neg(wp.Ident.parseAll("true"))
   }
 
   test("Ident -> Error - 1") {
@@ -62,5 +66,17 @@ class TestWhileyParser extends AnyFunSuite {
 
   test("Type -> ASTType - 3") {
     my_assert(wp.Type.parseAll("(( bool) )"), ASTType(ASTType(ASTPrimitiveType("bool"), true), true))
+  }
+
+  test("Expr -> ASTBinaryOp") {
+    my_assert(wp.Expr.parseAll("5 + 5"), ASTBinaryOp(ASTIntLiteral(5), "+", ASTIntLiteral(5)))
+  }
+
+  test("Expr -> ASTUnaryOp") {
+    my_assert(wp.Expr.parseAll("-3"), ASTUnaryOp("-", ASTIntLiteral(3)))
+  }
+
+  test("Expr -> Mixed Op") {
+    my_assert(wp.Expr.parseAll("a + b * (-4)"), ASTBinaryOp(ASTIdent("a"), "+", ASTBinaryOp(ASTIdent("b"), "*", ASTParanthesis(ASTUnaryOp("-", ASTIntLiteral(4))))))
   }
 }
