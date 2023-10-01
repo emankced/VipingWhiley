@@ -91,4 +91,12 @@ class TestWhileyParser extends AnyFunSuite {
   test("CodeBlock -> VarDecl") {
     my_assert(wp.CodeBlock.parseAll("\n    int x"), ASTCodeBlock(List((4, ASTVarDecl(List((ASTType(ASTPrimitiveType("int"), false), ASTIdent("x"))), List())))))
   }
+
+  test("FunctionDecl -> ASTFunctionDecl") {
+    my_assert(wp.FunctionDecl.parseAll("function test() -> (int result) requires 1 < 2:\n    return 3"), ASTFunctionDecl(ASTIdent("test"), ASTParameters(List()), ASTParameters(List(ASTVariable(ASTType(ASTPrimitiveType("int"), false), ASTIdent("result")))), List(ASTBinaryOp(ASTIntLiteral(1), "<", ASTIntLiteral(2))), List(), ASTCodeBlock(List((4, ASTReturnStmt(List(ASTIntLiteral(3))))))))
+  }
+
+  test("MethodDecl -> ASTMethodDecl") {
+    my_assert(wp.MethodDecl.parseAll("method test():\n    int x = hey()"), ASTMethodDecl(ASTIdent("test"), ASTParameters(List()), ASTParameters(List()), List(), List(), ASTCodeBlock(List((4, ASTVarDecl(List((ASTType(ASTPrimitiveType("int"), false), ASTIdent("x"))), List(ASTInvokeExpr(ASTIdent("hey"), List()))))))))
+  }
 }
