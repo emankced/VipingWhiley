@@ -1,5 +1,5 @@
 package AST {
-  case class ASTType(typeName: String) extends ASTNode {
+  case class ASTPrimitiveType(typeName: String) extends ASTNode {
     override def to_viper(adapt_for_function: Boolean = false): String = {
       if(typeName.equals("int")) {
         "Int"
@@ -11,29 +11,23 @@ package AST {
     }
   }
 
+  case class ASTType(t: ASTNode, paranthesis: Boolean) extends ASTNode {
+    override def to_viper(adapt_for_function: Boolean = false): String = {
+      if(paranthesis) {
+        "(" + t.to_viper() + ")"
+      } else {
+        t.to_viper()
+      }
+    }
+  }
+
   case class ASTVariable(varType: ASTType, ident: ASTIdent) extends ASTNode {
     override def to_viper(adapt_for_function: Boolean = false): String = {
-      val typeName = if (varType.typeName.equals("int")) {
-        "Int"
-      } else if (varType.typeName.equals("bool")) {
-        "Bool"
-      } else {
-        varType.typeName
-      }
-
-      ident.to_viper(adapt_for_function) + ": " + typeName
+      ident.to_viper(adapt_for_function) + ": " + varType.to_viper()
     }
 
     def to_viper_as_result_type(): String = {
-      val typeName = if (varType.typeName.equals("int")) {
-        "Int"
-      } else if (varType.typeName.equals("bool")) {
-        "Bool"
-      } else {
-        varType.typeName
-      }
-
-      typeName
+      varType.to_viper()
     }
   }
   case class ASTParameters(parameters: List[ASTVariable]) extends ASTNode {

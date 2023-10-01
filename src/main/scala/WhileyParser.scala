@@ -77,15 +77,21 @@ class WhileyParser() {
   // RealType is not properly specified in documentation...
 
   //TODO RealType missing!
-  val PrimitiveType = pstringIn(List("null", "bool", "byte", "int", "void"))
-  val Type: Parser[ASTType] = Parser.recursive[String] { recurse =>
-    val TermType = (PrimitiveType | (pcharIn('(') <* Indentation.? *> recurse <* Indentation.? *> pcharIn(')'))).string
+  val PrimitiveType = pstringIn(List("null", "bool", "byte", "int", "void")).map(x => ASTPrimitiveType(x))
+  val Type: Parser[ASTType] = Parser.recursive[ASTType] { recurse =>
+    val TermType: Parser[ASTType] = (PrimitiveType | ((pcharIn('(') ~ Indentation.?) *> recurse <* (Indentation.? ~ pcharIn(')')))).map(x => {
+      x match {
+        case p: ASTPrimitiveType => ASTType(p, false)
+        case ASTType(p, false) => ASTType(p, true)
+        case t => ASTType(t, true)
+      }
+    })
 
     //TODO fix UnionType
     //val UnionType = (TermType ~ (Indentation.?.void *> pcharIn('|').string <* Indentation.?.void *> TermType).rep).string
 
-    Parser.oneOf(List(TermType))
-  }.map(x => ASTType(x))
+    TermType
+  }
 
   // Expr rule
   val Expr: Parser[ASTExpr] = Parser.recursive[ASTExpr] { recurse =>
