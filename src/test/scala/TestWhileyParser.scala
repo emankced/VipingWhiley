@@ -8,7 +8,7 @@ class TestWhileyParser extends AnyFunSuite {
   def my_assert(x: Either[Parser.Error, ASTNode], expected: ASTNode): Unit = {
     assert(x match {
         case Left(e) => false
-        case Right(expected) => true
+        case Right(actual) => actual == expected
         case _ => false
     })
   }
@@ -50,5 +50,17 @@ class TestWhileyParser extends AnyFunSuite {
 
   test("ImportDecl -> ASTImportDecl") {
     my_assert(wp.ImportDecl.parseAll("import this::is::a::test"), ASTImportDecl("import this::is::a::test"))
+  }
+
+  test("Type -> ASTType - 1") {
+    my_assert(wp.Type.parseAll("int"), ASTType(ASTPrimitiveType("int"), false))
+  }
+
+  test("Type -> ASTType - 2") {
+    my_assert(wp.Type.parseAll("( int)"), ASTType(ASTPrimitiveType("int"), true))
+  }
+
+  test("Type -> ASTType - 3") {
+    my_assert(wp.Type.parseAll("(( bool) )"), ASTType(ASTType(ASTPrimitiveType("bool"), true), true))
   }
 }
