@@ -28,11 +28,11 @@ VipingWhiley expects a single command line argument, the path to the whiley file
 The generated Viper code is printed to `stdout`, while errors and warnings are printed to `stderr`.
 
 ```
-# Generate and print Viper code
-java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley
+// VipingWhiley
+VipingWhiley is a transpiler to convert Whiley code to Viper code.
 
-# Save Viper code to file
-java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley > file.vpr
+Usage: VipingWhiley <whiley-file>
+        whiley-file     A file containing Whiley code
 ```
 
 ### Tests
