@@ -63,6 +63,12 @@ The list of constraints:
 5. Support conditional programming (if-else).
 6. Do not support loops.
 
+## Design of the Parser
+The parser is built by combining parser functions.
+Every function parses a part of the input and is then mapped to an AST node.
+That means by parsing the whole input, a full AST is generated.
+The block indentations may still be wrong, but those get fixed inherently by calling `to_viper()`, which generates the Viper code from the AST.
+
 ## Challenges During Implementation
 While developing the the code and adding new parser functions, combining the parser functions sometimes rose new problems, even though the parser functions for themselfs worked correctly.
 At some points the order of the functions had to be adapted, in other cases `backtrack` is needed.
