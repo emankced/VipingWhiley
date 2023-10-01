@@ -23,7 +23,8 @@ class WhileyParser() {
   //TODO comment parser
 
   // Identifiers
-  val Ident: Parser[ASTIdent] = _Letter.rep.string.map(x => {
+  //TODO don't parse keywords instead of printing warnings
+  val Ident: Parser[ASTIdent] = /* !pstringIn(keywords_list) | */ _Letter.rep.string.map(x => {
     if(keyword_list.contains(x)) {
       System.err.println("Keywords may not be used as identifiers. Keyword used: " + x)
       //System.exit(-1)
@@ -95,7 +96,7 @@ class WhileyParser() {
 
   // Expr rule
   val Expr: Parser[ASTExpr] = Parser.recursive[ASTExpr] { recurse =>
-    val TermExpr = Ident | Literals | (pchar('(') ~ Indentation.? *> recurse <* Indentation.? ~ pchar(')')).backtrack.map(expr => ASTParanthesis(expr))
+    val TermExpr = Literals | (pchar('(') ~ Indentation.? *> recurse <* Indentation.? ~ pchar(')')).backtrack.map(expr => ASTParanthesis(expr)) | Ident
 
     val InvokeExpr = ((Ident <* Indentation.?) ~ (pchar('(') ~ Indentation.? *> ((recurse <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> recurse <* Indentation.?).rep0).? <* pchar(')'))).map(x => {
       val (name, arguments) = x
