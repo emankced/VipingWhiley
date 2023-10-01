@@ -243,9 +243,8 @@ object WhileyParser {
     val x = SourceFile.parseAll(sourceCode)
 
     x match {
-      case Left(error) => println(error.show)
+      case Left(error) => System.err.println(error.show)
       case Right(v) => {
-        //println(v)
         for(node <- v) {
           println(node.to_viper())
         }
