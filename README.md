@@ -35,6 +35,14 @@ java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley
 java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley > file.vpr
 ```
 
+### Tests
+For most parsers a few tests have been implemented.
+The tests can be executed using `test` in `sbt`'s interactive shell or by:
+
+```
+sbt test
+```
+
 ## Whiley Example Programs
 In the folders `whiley-programs/with-verification` and `whiley-programs/without-verification` are example programs located.
 Respectively with or without verification features.
