@@ -18,7 +18,6 @@ object Main {
 
     val sourceFile = args(0)
     val sourceCode = scala.io.Source.fromFile(sourceFile).mkString + "\n"
-    val wp = WhileyParser();
-    wp.parse(sourceCode)
+    WhileyParser.parse(sourceCode)
   }
 }

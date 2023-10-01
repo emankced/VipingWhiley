@@ -5,7 +5,7 @@ import cats.implicits.toShow
 import cats.Defer
 import AST.*
 
-class WhileyParser() {
+object WhileyParser {
   val LineTerminator: Parser[Unit] = lf | cr | crlf
   val Indentation: Parser[String] = (htab | sp).rep.string
 
