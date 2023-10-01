@@ -18,9 +18,14 @@ Of course you can run the program without the interactive shell:
 sbt "run file.whiley"
 ```
 
-And you can build the JAR file with, which is being stored at `target/`:
+And you can build the JAR file with, which is being stored at `target/scala-x.y.z`:
 ```
 sbt assembly
+```
+
+After generating the JAR file, you can use the program as standalone:
+```
+java -jar VipingWhiley-assembly-0.1.0-SNAPSHOT.jar file.whiley
 ```
 
 ### Usage
