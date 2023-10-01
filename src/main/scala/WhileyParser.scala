@@ -138,19 +138,13 @@ class WhileyParser() {
 
   //TODO support empty lines
   val CodeBlock: Parser[ASTCodeBlock] = Parser.recursive[ASTCodeBlock] { recurse =>
-    //TODO Statement
+    // Statements
     // Missing: LVal.Ident | LVal[Expr] | *Expr
     val LVal = Ident
     val AssignStmt = ((LVal <* Indentation.?) ~ (pchar(',') ~ Indentation.? *> LVal <* Indentation.?).rep0 ~ (pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0)).map(x => {
       val ((lval0, lval_rest), (expr0, expr_rest)) = x
       ASTAssignStmt(List(lval0) ++ lval_rest, List(expr0) ++ expr_rest)
     })
-    val testAssignStmtInput = "x,z=42+1337-yz,73"
-    val testAssignStmt = AssignStmt.parseAll(testAssignStmtInput)
-    testAssignStmt match {
-      case Left(error) => { System.err.println(error.show); System.exit(-2) }
-      case Right(v) =>
-    }
 
     val VarDecl = ((Type <* Indentation) ~ Ident ~ (Indentation.?.with1 ~ pchar(',') *> Type ~ (Indentation *> Ident)).backtrack.rep0 ~ (Indentation.? ~ pchar('=') ~ Indentation.? *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).backtrack.rep0).?).map(x => {
       val (((type0, ident0), type_ident_rest), option_expr0_expr_rest) = x
@@ -164,12 +158,6 @@ class WhileyParser() {
 
       ASTVarDecl(type_ident, exprs)
     })
-    val testVarDeclInput = "int xz"
-    val testVarDecl = VarDecl.parseAll(testVarDeclInput)
-    testVarDecl match {
-      case Left(error) => { System.err.println(error.show); System.exit(-2) }
-      case Right(v) =>
-    }
 
     val ReturnStmt = (pstring("return") *> (Indentation *> Expr ~ (Indentation.?.with1 ~ pchar(',') ~ Indentation.? *> Expr).rep0).?).map(x => {
       val exprs = x match {
@@ -179,12 +167,6 @@ class WhileyParser() {
 
       ASTReturnStmt(exprs)
     })
-    val testReturnStmtInput = "return 5"
-    val testReturnStmt = ReturnStmt.parseAll(testReturnStmtInput)
-    testReturnStmt match {
-      case Left(error) => { System.err.println(error.show); System.exit(-2) }
-      case Right(v) =>
-    }
 
     val ControlStmt = pstringIn(List("break", "continue", "skip")).map(x => ASTControlStmt(x))
 

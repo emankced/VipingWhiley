@@ -79,4 +79,16 @@ class TestWhileyParser extends AnyFunSuite {
   test("Expr -> Mixed Op") {
     my_assert(wp.Expr.parseAll("a + b * (-4)"), ASTBinaryOp(ASTIdent("a"), "+", ASTBinaryOp(ASTIdent("b"), "*", ASTParanthesis(ASTUnaryOp("-", ASTIntLiteral(4))))))
   }
+
+  test("CodeBlock -> ASTCodeBlock") {
+    my_assert(wp.CodeBlock.parseAll("\n    return 5"), ASTCodeBlock(List((4, ASTReturnStmt(List(ASTIntLiteral(5)))))))
+  }
+
+  test("CodeBlock -> IfTest") {
+    my_assert(wp.CodeBlock.parseAll("\n    if 3 < 2:\n        x = 5"), ASTCodeBlock(List((4, ASTIfStmt(ASTBinaryOp(ASTIntLiteral(3), "<", ASTIntLiteral(2)), ASTCodeBlock(List((8, ASTAssignStmt(List(ASTIdent("x")), List(ASTIntLiteral(5)))))))))))
+  }
+
+  test("CodeBlock -> VarDecl") {
+    my_assert(wp.CodeBlock.parseAll("\n    int x"), ASTCodeBlock(List((4, ASTVarDecl(List((ASTType(ASTPrimitiveType("int"), false), ASTIdent("x"))), List())))))
+  }
 }
